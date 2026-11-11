@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>台灣野生動物探索計畫</title><link rel="stylesheet" href="styles/main.css"></head>
+
+
+<body>
+<main>
+<section class="exploration" aria-label="野生動物探索研究站">
+<nav class="toolbar" aria-label="研究功能">
+<button data-dialog="guide"><span>01 / FIELD GUIDE</span>探索指南 <b>↗</b></button>
+<button data-dialog="hints"><span>02 / FIELD NOTES</span>探索提示 <b>⌖</b></button>
+<div class="identity">TWE<span>TAIWAN WILDLIFE EXPLORER</span></div>
+<button data-dialog="records"><span>03 / DISCOVERIES</span>發現紀錄 <b>≡</b></button>
+<button data-dialog="profile"><span>04 / RESEARCHER</span>研究員檔案 <b>◎</b></button></nav>
+
+<div class="workspace">
+<section class="map-panel">
+
+<header class="panel-heading">
+<div><span class="eyebrow">FIELD EXPLORATION / 01</span><h1>島嶼探索</h1></div><span class="status"><i></i>研究模式</span></header>
+
+<div id="map-viewport" tabindex="0" aria-label="示意地圖，使用滾輪縮放或拖曳移動">
+<div class="ocean-label">TAIWAN<br><span>ISLAND FIELD STATION</span></div>
+<div id="map-world"><svg class="island" viewBox="0 0 600 650" role="img" aria-label="台灣輪廓臨時示意，非正式地理素材"><defs><linearGradient id="land" x2="1" y2="1"><stop stop-color="#3c746a"/><stop offset="1" stop-color="#193d41"/></linearGradient><linearGradient id="ridge" x2="1" y2="1"><stop stop-color="#80a293"/><stop offset="1" stop-color="#294e4a"/></linearGradient></defs><path class="coast-glow" d="M391 55 422 78 414 113 435 137 407 188 389 246 367 312 332 381 303 446 265 505 235 562 222 593 199 576 193 535 170 497 169 457 178 402 193 351 212 293 235 241 263 187 291 140 333 97Z"/><path fill="url(#land)" stroke="#87b5a0" stroke-width="1.5" d="M391 55 422 78 414 113 435 137 407 188 389 246 367 312 332 381 303 446 265 505 235 562 222 593 199 576 193 535 170 497 169 457 178 402 193 351 212 293 235 241 263 187 291 140 333 97Z"/><path fill="url(#ridge)" opacity=".7" d="m387 113-20 57-26 17 6 42-35 28-1 41-31 28 3 32-27 37-2 47-28 38-12 51 38-46 25-27 16-53 29-36 10-50 31-49 16-58 20-48Z"/><g fill="none" stroke="#9ab7a1" stroke-width="1" opacity=".2"><path d="m366 151-49 62-28 77-51 73-27 101"/><path d="m389 187-31 76-36 75-28 73-50 86"/><path d="m325 154-38 79-42 64-27 78"/></g></svg>
+<div id="map-animals"></div></div>
+<div class="map-note"><span class="cross">＋</span> 地圖／座標為示意 · 動物暫用 Emoji</div>
+<div class="map-controls">
+<button id="zoom-in" aria-label="放大地圖">＋</button><output id="zoom-level">100%</output>
+<button id="zoom-out" aria-label="縮小地圖">−</button>
+<button id="reset-map" aria-label="重設地圖">⌖</button></div>
+<div id="zoom-hint">滾動放大地圖，尋找島嶼上的生命蹤跡</div></div>
+<footer class="map-footer"><span>⌖ TAIWAN / 示意探索區</span><span>SCROLL TO ZOOM · DRAG TO EXPLORE</span></footer>
+</section>
+
+<aside id="research-panel" class="research-panel" tabindex="0" aria-label="動物研究面板，可獨立捲動" aria-live="polite"></aside>
+</div><a class="archive-link" href="#encyclopedia"><span>CONTINUE YOUR RESEARCH</span><strong>前往物種研究圖鑑</strong><b>↓</b></a></section>
+
+<section id="encyclopedia" class="archive">
+
+<header><span class="eyebrow">THE LIVING ISLAND / RESEARCH COLLECTION</span><h2>物種研究圖鑑</h2><p class="english">SPECIES RESEARCH ARCHIVE</p><p class="intro">探索島嶼各處，蒐集野生動物的研究紀錄。</p></header>
+
+<div class="progress-heading"><span>圖鑑收集進度</span><span id="progress-text">00 / 05</span></div>
+<div class="progress-track" role="progressbar" aria-label="圖鑑收集進度" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
+<div id="progress-fill"></div></div>
+<div id="archive-list" tabindex="0" role="region" aria-label="物種圖鑑列表，可獨立捲動"></div>
+<footer class="archive-footer">TAIWAN WILDLIFE EXPLORER<span>PHASE 01 / INTERACTIVE PROTOTYPE</span></footer>
+</section>
+</main>
+
+<dialog id="utility-dialog">
+<button class="close-dialog" aria-label="關閉">×</button>
+<div id="dialog-content"></div></dialog>
+
+<div id="toast" role="status"></div>
+<script type="module" src="scripts/main.js"></script></body>
+</html>
