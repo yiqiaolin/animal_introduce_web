@@ -20,7 +20,7 @@ function lockedCard(animal) {
 
 function unlockedCard(animal, openId) {
   const fields = [
-    ['棲息環境', animal.habitat + '（既有示範資料）'],
+    ['棲息環境', animal.habitat],
     ['食性', animal.diet || '待補：尚無獨立且經確認的食性資料。'],
     ['活動習性', animal.habit + '（既有示範資料）'],
     ['保育等級', animal.conservation],
@@ -42,7 +42,7 @@ function unlockedCard(animal, openId) {
       <div class="detail-grid">
         ${renderAnimalPhoto(animal)}
         <div>
-          <span class="demo-tag">研究文字待校核</span>
+          <span class="demo-tag">活動習性待校核 · 食性待補</span>
           <h3>${animal.name}</h3><p class="scientific">${animal.scientific}</p><hr>
           <p>物種分類 ｜ ${animal.category}</p><p>發現地區 ｜ ${discoveryRegion(animal)}</p>
           <dl class="archive-research">${fields.map(([label,value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>

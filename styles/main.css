@@ -1275,3 +1275,175 @@ dialog h2 {
 .researcher-full-reset-dialog [data-full-reset-error] { color:#e3bba7; }
 .researcher-reset-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-top:20px; }
 .researcher-reset-actions button:disabled { opacity:.5; cursor:wait; }
+
+/* Research panel Phase 1. Keep archive photos and every other component intact. */
+#research-panel {
+  --rp-accent:#b5cda8;
+  --rp-muted:#9caf9f;
+  --rp-border:#39574c;
+  display:flex;
+  flex-direction:column;
+  overflow:visible;
+  container-type:size;
+  scrollbar-gutter:auto;
+  background:#112824;
+}
+#research-panel .rp-header {
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:0;
+  padding:clamp(10px, 2cqh, 16px) 18px;
+  border-bottom:1px solid var(--rp-border);
+}
+#research-panel .rp-eyebrow { color:var(--rp-muted); font-size:8px; letter-spacing:1.7px; }
+#research-panel .rp-header h2 { margin:3px 0 0; font-size:18px; font-weight:400; letter-spacing:2px; }
+#research-panel .rp-specimen { color:var(--rp-accent); font-size:9px; letter-spacing:1px; white-space:nowrap; }
+#research-panel .rp-scroll {
+  position:relative;
+  flex:1;
+  min-height:0;
+  display:grid;
+  grid-template-rows:minmax(0, 1fr);
+  overflow:visible;
+}
+
+/* Panel-only sequence: 800ms identification, then 920ms layered reveal.
+   Animation uses the existing boxes; sizing and composition stay unchanged. */
+#research-panel .rp-scan {
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  color:var(--rp-accent);
+  background:radial-gradient(ellipse, #29433680, transparent 65%);
+  animation:rp-scan-dismiss .8s steps(1, end) forwards;
+}
+#research-panel .rp-scan span { font-size:10px; letter-spacing:2px; }
+#research-panel .rp-scan p { font-size:13px; letter-spacing:1px; }
+#research-panel .rp-scan::before {
+  content:"";
+  position:absolute;
+  inset:20% 12%;
+  background:linear-gradient(transparent 40%, #b5cda850 49%, #b5cda8 50%, transparent 52%);
+  animation:rp-scan-sweep .8s ease-in-out both;
+}
+#research-panel .rp-enter .rp-diagram { animation:rp-scan-wait .8s steps(1, end) backwards; }
+#research-panel .rp-enter .rp-subject { animation:rp-subject-reveal .28s .8s ease-out both; }
+#research-panel .rp-enter .rp-annotation-lines path {
+  stroke-dasharray:1;
+  animation:rp-line-reveal .28s 1.08s ease-out both;
+}
+#research-panel .rp-enter .rp-callout { animation:rp-box-reveal .2s ease-out both; }
+#research-panel .rp-enter .rp-callout--identity { animation-delay:1.28s; }
+#research-panel .rp-enter .rp-callout--habitat { animation-delay:1.36s; }
+#research-panel .rp-enter .rp-callout--conservation { animation-delay:1.44s; }
+#research-panel .rp-enter .rp-callout--trivia { animation-delay:1.52s; }
+@keyframes rp-scan-dismiss { to { visibility:hidden; } }
+@keyframes rp-scan-wait { from { visibility:hidden; } to { visibility:visible; } }
+@keyframes rp-scan-sweep {
+  from { transform:translateY(-20%); opacity:0; }
+  30%,70% { opacity:1; }
+  to { transform:translateY(20%); opacity:0; }
+}
+@keyframes rp-subject-reveal {
+  from { opacity:0; transform:translate(var(--rp-subject-offset), 5px); }
+  to { opacity:1; transform:translate(var(--rp-subject-offset), 0); }
+}
+@keyframes rp-line-reveal { from { stroke-dashoffset:1; } to { stroke-dashoffset:0; } }
+@keyframes rp-box-reveal { from { opacity:0; } to { opacity:1; } }
+@media (prefers-reduced-motion:reduce) {
+  #research-panel .rp-scan { display:none; }
+  #research-panel .rp-enter .rp-diagram,
+  #research-panel .rp-enter .rp-subject,
+  #research-panel .rp-enter .rp-annotation-lines path,
+  #research-panel .rp-enter .rp-callout { animation:none; }
+}
+#research-panel .rp-diagram {
+  --rp-subject-width:80%;
+  --rp-subject-height:100%;
+  --rp-subject-offset:0px;
+  position:relative;
+  isolation:isolate;
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  min-height:0;
+  grid-template-rows:auto minmax(0, 1fr) auto;
+  gap:clamp(6px, 1.4cqh, 12px);
+  padding:clamp(8px, 1.8cqh, 16px) 16px;
+  background:radial-gradient(ellipse at 50% 48%, #294336 0%, #172f28 48%, #112824 78%);
+}
+#research-panel .rp-diagram[data-species="bear"] { --rp-subject-width:62%; --rp-subject-height:100%; --rp-subject-offset:4px; }
+#research-panel .rp-diagram[data-species="cat"] { --rp-subject-width:80%; --rp-subject-height:90%; --rp-subject-offset:-8px; }
+#research-panel .rp-diagram[data-species="monkey"] { --rp-subject-width:84%; --rp-subject-height:96%; --rp-subject-offset:6px; }
+#research-panel .rp-diagram[data-species="salmon"] { --rp-subject-width:96%; --rp-subject-height:75%; --rp-subject-offset:0px; }
+#research-panel .rp-diagram[data-species="magpie"] { --rp-subject-width:78%; --rp-subject-height:100%; --rp-subject-offset:8px; }
+#research-panel .rp-annotation-lines { position:absolute; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+#research-panel .rp-annotation-lines path { fill:none; stroke:#94ad8d; stroke-width:1; opacity:.55; vector-effect:non-scaling-stroke; }
+#research-panel .rp-callout {
+  min-width:0;
+  position:relative;
+  align-self:start;
+  padding:clamp(6px, 1.3cqh, 10px) 10px;
+  border:1px solid var(--rp-border);
+  border-radius:3px;
+  background:#152e27;
+  box-shadow:0 5px 16px #071b1426;
+  overflow-wrap:anywhere;
+}
+#research-panel .rp-callout::before { content:""; position:absolute; left:-3px; top:13px; width:5px; height:5px; border-radius:50%; background:var(--rp-accent); }
+#research-panel .rp-callout--identity { grid-column:1; grid-row:1; }
+#research-panel .rp-callout--habitat { grid-column:2; grid-row:1; margin-top:0; }
+#research-panel .rp-callout--conservation { grid-column:1; grid-row:3; margin-top:0; }
+#research-panel .rp-callout--trivia { grid-column:2; grid-row:3; }
+#research-panel .rp-field-label { display:block; margin:0 0 6px; color:var(--rp-accent); font-size:10px; font-weight:400; letter-spacing:.5px; }
+#research-panel .rp-callout--identity h3 { margin:0 0 4px; color:#e2eadc; font-size:clamp(17px, 3cqh, 20px); font-weight:400; line-height:1.4; letter-spacing:1px; }
+#research-panel .rp-callout p { margin:0; font-size:12px; color:#c9d6c7; line-height:1.55; }
+#research-panel .rp-callout .rp-scientific { font-family:Georgia,serif; font-style:italic; font-size:11px; color:var(--rp-muted); }
+#research-panel .rp-callout small { display:block; margin-top:5px; font-size:10px; color:var(--rp-muted); }
+#research-panel .rp-category { display:inline-block; margin-top:6px; font-size:9px; color:var(--rp-accent); }
+#research-panel .rp-subject {
+  grid-column:1 / -1;
+  grid-row:2;
+  position:relative;
+  justify-self:center;
+  width:var(--rp-subject-width);
+  min-height:0;
+  align-self:center;
+  height:var(--rp-subject-height);
+  margin:0;
+  transform:translateX(var(--rp-subject-offset));
+}
+#research-panel .rp-cutout { display:block; width:100%; height:100%; object-fit:contain; object-position:center; }
+#research-panel .rp-cutout-placeholder {
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  padding:4px;
+  border:1px dashed var(--rp-border);
+  border-radius:4px;
+  color:var(--rp-muted);
+  font-size:10px;
+  text-align:center;
+}
+#research-panel .rp-cutout-placeholder > span:first-child { font-size:34px; color:var(--rp-accent); }
+#research-panel .rp-scroll--standby { display:flex; }
+#research-panel .rp-standby { margin:auto; padding:clamp(12px, 3cqh, 30px) 20px; text-align:center; }
+#research-panel .rp-standby-symbol { margin-bottom:clamp(8px, 3cqh, 22px); font-size:clamp(32px, 10cqh, 64px); color:#8cae8a; line-height:1; }
+#research-panel .rp-standby h3 { margin:14px 0; font-size:23px; font-weight:400; letter-spacing:2px; }
+#research-panel .rp-standby p { max-width:290px; margin:0 auto; color:var(--rp-muted); font-size:12px; line-height:2; }
+#research-panel .rp-standby-status { display:inline-block; margin-top:clamp(10px, 4cqh, 26px); padding:5px 12px; border:1px solid var(--rp-border); border-radius:20px; font-size:10px; color:var(--rp-accent); }
+@media (max-width:1050px) {
+  #research-panel .rp-header { padding-inline:16px; }
+  #research-panel .rp-diagram { padding-inline:12px; }
+  #research-panel .rp-callout { padding:9px; }
+  #research-panel .rp-callout--identity h3 { font-size:17px; }
+}

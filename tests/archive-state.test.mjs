@@ -61,8 +61,8 @@ test('five user-photo paths preserve IDs and leave attribution unassigned', () =
     assert.equal(photo.src,`assets/animals/photos/${filename}`);
     for(const key of ['author','source','license','licenseUrl','modifications'])assert.equal(photo[key],'');
     assert.equal(animal.diet,null);
-    assert.equal(animal.introduction,null);
-    assert.equal(animal.trivia,null);
+    assert.equal(typeof animal.introduction,'string');
+    assert.equal(typeof animal.trivia,'string');
   }
 });
 
