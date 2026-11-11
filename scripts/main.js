@@ -1,31 +1,33 @@
 import { getAnimal } from './data/animals.js';
-import { selectAnimal } from './state.js';
+import { selectAnimal, state, subscribeExploration } from './state.js';
 import { initMap } from './map.js';
 import { renderPanel } from './research-panel.js';
 import { renderArchive } from './encyclopedia.js';
 import { initDialogs } from './dialogs.js';
+import { createToastNotifications } from './notifications.js';
 
-let toastTimer;
-
-function notifyDiscovery(animal) {
-  const toast = document.querySelector('#toast');
-  toast.textContent = `新物種已記錄 · ${animal.name}`;
-  toast.classList.add('visible');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('visible'), 2800);
-}
+const notifications = createToastNotifications(document.querySelector('#toast'));
+subscribeExploration(event => {
+  if (['progress-reset', 'project-reset'].includes(event.reason)) { notifications.clear(); return; }
+  const notices = [];
+  if (event.reason === 'species-discovered') {
+    notices.push({kind:'discovery', title:`發現新物種！${getAnimal(event.animalId).name}`, message:'已加入研究圖鑑'});
+  }
+  notices.push(...event.notifications);
+  notifications.enqueue(notices);
+});
 
 const refreshMarkers = initMap(id => {
-  const isNew = selectAnimal(id);
+  selectAnimal(id);
   const animal = getAnimal(id);
   renderPanel(animal);
   renderArchive();
   refreshMarkers();
-  if (isNew) notifyDiscovery(animal);
 });
 
-renderPanel(null);
+renderPanel(getAnimal(state.selected) || null);
 renderArchive();
+refreshMarkers();
 initDialogs(() => {
   renderPanel(null);
   renderArchive();

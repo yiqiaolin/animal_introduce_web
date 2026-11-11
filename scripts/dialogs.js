@@ -1,7 +1,10 @@
 import { animals, getAnimal } from './data/animals.js';
-import { state, resetProgress } from './state.js';
+import { state } from './state.js';
+import { renderResearcherProfile, bindResearcherProfile } from './researcher-profile.js';
+import { hasHandledIntro, markIntroHandled, renderGuide, renderInvitation } from './exploration-guide.js';
 
 const titles = {
+  intro: ['RESEARCH MISSION / 001', '歡迎加入探索計畫'],
   guide: ['EXPLORATION GUIDE', '探索指南'],
   hints: ['FIELD NOTES', '探索提示'],
   records: ['DISCOVERY LOG', '發現紀錄'],
@@ -9,13 +12,8 @@ const titles = {
 };
 
 function dialogBody(type) {
-  if (type === 'guide') return `
-    <ol class="guide-steps">
-      <li><b>觀察島嶼</b><p>使用滾輪或 ＋／− 按鈕縮放，拖曳移動地圖，⌖ 重設視角。</p></li>
-      <li><b>尋找生命</b><p>放大至 145% 以上即可看見示範動物標記。點選標記開啟研究資訊。</p></li>
-      <li><b>累積研究</b><p>首次點選將解鎖圖鑑；再次點選不重複計數。下方長條按鈕可前往圖鑑。</p></li>
-    </ol>
-    <p class="notice">本階段為操作雛形；研究計畫開場與完整發現動畫將於後續階段加入。</p>`;
+  if (type === 'guide') return renderGuide();
+  if (type === 'intro') return renderInvitation();
 
   if (type === 'hints') return animals.map(animal => `
     <div class="hint-row"><span>${animal.category}</span><p>${animal.habitat}</p></div>
@@ -24,59 +22,123 @@ function dialogBody(type) {
   if (type === 'records') return state.records.length
     ? state.records.map(record => `
       <div class="hint-row">
-        <span>${record.time.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</span>
+        <span>${record.time?.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }) || '時間未記錄'}</span>
         <p>首次發現 · ${getAnimal(record.id).name}</p>
       </div>`).join('')
     : '<div class="dialog-empty">尚無發現紀錄。<p>回到地圖，展開你的第一場探索。</p></div>';
 
-  return `
-    <label class="profile-label">研究員稱呼<input id="researcher-name" maxlength="24"></label>
-    <p>探索進度 <strong>${state.discovered.size} / ${animals.length}</strong></p>
-    <p class="notice">設定與進度僅保留於本次頁面，重新整理後清除。持久化儲存將於後續階段加入。</p>
-    <button id="restart" class="secondary-button">重新開始探索</button>
-    <div id="reset-confirm"></div>`;
+  return renderResearcherProfile();
 }
 
 export function initDialogs(onReset) {
   const dialog = document.querySelector('#utility-dialog');
   const content = document.querySelector('#dialog-content');
+  const guideTrigger = document.querySelector('[data-dialog="guide"]');
+  let currentType = null;
+  let session = null;
+  let returnFocus = null;
+  let nextGuide = false;
+  let previousOverflow = '';
+  let previousGutter = '';
+  let closingAnimation = null;
+  let closing = false;
 
-  function bindProfile() {
-    const input = content.querySelector('input');
-    // Assign through value so user-entered names are never interpreted as HTML.
-    input.value = state.researcher;
-    input.oninput = () => { state.researcher = input.value; };
-    content.querySelector('#restart').onclick = () => {
-      const confirmation = content.querySelector('#reset-confirm');
-      confirmation.innerHTML = `
-        <p class="notice">確定清除本次發現紀錄與圖鑑進度？研究員稱呼會保留。</p>
-        <button id="confirm-reset" class="secondary-button">確認重新開始</button>
-        <button id="cancel-reset" class="secondary-button">取消</button>`;
-      content.querySelector('#cancel-reset').onclick = () => confirmation.replaceChildren();
-      content.querySelector('#confirm-reset').onclick = () => {
-        resetProgress();
-        onReset();
-        open('profile');
-      };
-    };
+  function dismiss(openGuide = false) {
+    if (!dialog.open || closing) return;
+    nextGuide = openGuide;
+    if (currentType === 'intro') markIntroHandled();
+    const reduceMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (currentType === 'profile' && !reduceMotion && typeof dialog.animate === 'function') {
+      closing = true;
+      const activeSession = session;
+      closingAnimation = dialog.animate([
+        { opacity: 1, transform: 'scale(1)' },
+        { opacity: 0, transform: 'scale(.96)' }
+      ], { duration: 200, easing: 'ease-in', fill: 'forwards' });
+      closingAnimation.finished.catch(() => {}).then(() => {
+        if (session !== activeSession || !dialog.open) return;
+        closingAnimation.cancel();
+        dialog.close();
+      });
+    } else dialog.close();
   }
 
-  function open(type) {
+  function finishClose() {
+    const wasInvitation = currentType === 'intro';
+    const shouldOpenGuide = nextGuide;
+    const trigger = returnFocus;
+    closingAnimation?.cancel();
+    closingAnimation = null;
+    closing = false;
+    session?.abort();
+    session = null;
+    currentType = null;
+    nextGuide = false;
+    if (wasInvitation && !hasHandledIntro()) markIntroHandled();
+    document.documentElement.style.overflow = previousOverflow;
+    document.documentElement.style.scrollbarGutter = previousGutter;
+    delete dialog.dataset.mode;
+    if (shouldOpenGuide) open('guide', guideTrigger);
+    else if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+  }
+
+  function outside(event) {
+    if (event.target !== dialog) return false;
+    const bounds = dialog.getBoundingClientRect();
+    return event.clientX < bounds.left || event.clientX > bounds.right
+      || event.clientY < bounds.top || event.clientY > bounds.bottom;
+  }
+
+  function open(type, trigger = guideTrigger) {
+    if (session || dialog.open) return; // Includes the queued close/animation interval.
     const [english, title] = titles[type];
-    content.innerHTML = `<span class="eyebrow">${english}</span><h2>${title}</h2>${dialogBody(type)}`;
-    if (type === 'profile') bindProfile();
-    if (!dialog.open) dialog.showModal();
+    content.innerHTML = `<span class="eyebrow">${english}</span><h2 id="utility-dialog-title" tabindex="-1">${title}</h2>${dialogBody(type)}`;
+    currentType = type;
+    returnFocus = trigger;
+    nextGuide = false;
+    dialog.dataset.mode = type;
+    session = new AbortController();
+    const options = { signal: session.signal };
+    if (type === 'profile') bindResearcherProfile(content, { signal: session.signal, onReset });
+    let startedOutside = false;
+    dialog.addEventListener('pointerdown', event => { startedOutside = outside(event); }, options);
+    dialog.addEventListener('click', event => {
+      const action = event.target.closest('[data-dialog-action]')?.dataset.dialogAction;
+      if (action === 'view-guide') dismiss(true);
+      else if (action === 'explore' || event.target.closest('.close-dialog')) dismiss();
+      else if (startedOutside && outside(event)) dismiss();
+    }, options);
+    dialog.addEventListener('cancel', event => {
+      event.preventDefault();
+      dismiss();
+    }, options);
+    dialog.addEventListener('close', finishClose, options);
+    dialog.addEventListener('keydown', event => {
+      if (event.key !== 'Tab') return;
+      const focusable = [...dialog.querySelectorAll('button, a[href], input, select, textarea, summary, [tabindex="0"]')]
+        .filter(element => !element.disabled && element.getClientRects().length);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && (document.activeElement === first || !focusable.includes(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !focusable.includes(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    }, options);
+    previousOverflow = document.documentElement.style.overflow;
+    previousGutter = document.documentElement.style.scrollbarGutter;
+    document.documentElement.style.scrollbarGutter = 'stable';
+    document.documentElement.style.overflow = 'hidden';
+    dialog.showModal(); // Native modal makes the background inert.
+    dialog.scrollTop = 0;
+    content.querySelector('h2').focus({ preventScroll: true });
   }
 
   document.querySelectorAll('[data-dialog]').forEach(button => {
-    button.onclick = () => open(button.dataset.dialog);
+    button.onclick = () => open(button.dataset.dialog, button);
   });
-  dialog.querySelector('.close-dialog').onclick = () => dialog.close();
-  dialog.addEventListener('click', event => {
-    if (event.target !== dialog) return;
-    const bounds = dialog.getBoundingClientRect();
-    const outside = event.clientX < bounds.left || event.clientX > bounds.right
-      || event.clientY < bounds.top || event.clientY > bounds.bottom;
-    if (outside) dialog.close();
-  });
+  if (!hasHandledIntro()) open('intro', guideTrigger);
 }

@@ -194,18 +194,24 @@ main {
 .dragging #map-world {
   transition:none
 }
+/* Artwork and markers share image coordinates, excluding viewport letterboxing. */
+#map-artwork {
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+}
 .island {
+  display:block;
   width:100%;
   height:100%;
+  object-fit:contain;
+  pointer-events:none;
+  user-select:none;
+}
+#map-animals {
   position:absolute;
   inset:0;
-  filter:drop-shadow(16px 15px 14px #04161d)
-}
-.coast-glow {
-  fill:none;
-  stroke:#74aa9d;
-  stroke-width:14;
-  opacity:.07
 }
 .ocean-label {
   position:absolute;
@@ -288,62 +294,80 @@ main {
   letter-spacing:1px;
   border-top:1px solid var(--line)
 }
+/* The artwork scales with the world; only the invisible hit area is compensated. */
 .animal-marker {
   position:absolute;
-  transform:translate(-50%,-50%);
-  border:1px solid #9cbaa880;
-  background:#16373be8;
-  border-radius:50%;
-  width:35px;
-  height:35px;
+  transform:translate(-50%, -50%);
+  width:calc(40px / var(--map-scale, 1));
+  height:calc(40px / var(--map-scale, 1));
   padding:0;
+  border:0;
+  background:transparent;
+  border-radius:50%;
   opacity:0;
   visibility:hidden;
-  transition:opacity .4s,background .2s,box-shadow .2s;
-  font-size:20px
+  pointer-events:none;
+  cursor:pointer;
 }
 .animals-visible .animal-marker {
   opacity:1;
-  visibility:visible
+  visibility:visible;
+  pointer-events:auto;
 }
-.animal-marker:hover,.animal-marker.selected {
-  background:#45655b;
-  box-shadow:0 0 0 5px #a5dbbd1a;
-  border-color:var(--accent)
-}
+/* Override the generic button press transform without moving the anchor. */
 .animal-marker:active {
-  transform:translate(-50%,-50%)
+  transform:translate(-50%, -50%);
 }
-.animal-name {
-  display:block;
+.animal-marker:focus-visible {
+  outline-width:calc(2px / var(--map-scale, 1));
+  outline-offset:calc(3px / var(--map-scale, 1));
+}
+.animal-marker::after {
+  content:"";
   position:absolute;
-  top:37px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:8px;
-  white-space:nowrap;
-  color:#d5e9df;
-  background:#0b232cbb;
-  border-radius:2px;
-  padding:1px 4px
+  inset:0;
+  border:calc(1px / var(--map-scale, 1)) solid var(--accent);
+  border-radius:50%;
+  opacity:0;
+  pointer-events:none;
+}
+.animal-marker.discovering::after {
+  animation:discovery-scan .8s ease-out;
+}
+@keyframes discovery-scan {
+  0% { opacity:0; transform:scale(.45); }
+  25% { opacity:.85; }
+  100% { opacity:0; transform:scale(1.4); }
 }
 .found-check {
   display:none;
   position:absolute;
-  top:-5px;
-  right:-5px;
-  font-size:8px;
-  background:var(--accent);
+  z-index:1;
+  left:calc(50% + var(--icon-width) / 2 + 2px / var(--map-scale, 1));
+  top:50%;
+  transform:translateY(-50%);
+  width:calc(7px / var(--map-scale, 1));
+  height:calc(7px / var(--map-scale, 1));
+  font-size:calc(6px / var(--map-scale, 1));
+  line-height:1.15;
+  text-align:center;
   color:#0c2925;
+  background:var(--accent);
   border-radius:50%;
-  width:12px;
-  height:12px
+  pointer-events:none;
 }
 .discovered .found-check {
-  display:block
+  display:block;
 }
 .animal-icon {
-  filter:saturate(.6)
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  width:var(--icon-width);
+  height:auto;
+  pointer-events:none;
+  user-select:none;
 }
 .standby {
   text-align:center;
@@ -700,6 +724,10 @@ dialog h2 {
   font-weight:400;
   margin:6px 0 26px
 }
+/* Programmatic modal entry focus stays accessible without outlining the title. */
+#utility-dialog-title[tabindex="-1"]:focus {
+  outline:none;
+}
 .close-dialog {
   position:absolute;
   right:18px;
@@ -860,3 +888,390 @@ dialog h2 {
     opacity: 1;
   }
 }
+
+/* Region camera clips against the complete fitted image, rather than the panel. */
+#map-camera {
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  overflow:hidden;
+}
+#map-world.map-switching {
+  transition:none;
+}
+.region-entrance {
+  position:absolute;
+  transform:translate(-50%, -50%);
+  width:calc(26px / var(--map-scale, 1));
+  height:calc(26px / var(--map-scale, 1));
+  padding:0;
+  border:calc(1px / var(--map-scale, 1)) solid #9bb5a6;
+  border-radius:3px;
+  background:#142e31dd;
+  color:#c2d6c7;
+  font-size:calc(17px / var(--map-scale, 1));
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+/* Delay hiding visibility until fade-out ends; invisible entrances never receive clicks. */
+.region-entrance {
+  transition:opacity .22s ease, visibility 0s linear .22s;
+}
+.entrances-visible .region-entrance {
+  transition:opacity .22s ease, visibility 0s;
+}
+.region-entrance:active {
+  transform:translate(-50%, -50%);
+}
+.entrances-visible .region-entrance {
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
+.region-entrance:hover {
+  background:#30534b;
+}
+#back-overview {
+  position:absolute;
+  top:12px;
+  left:16px;
+  border:1px solid var(--line);
+  background:#102730ee;
+  border-radius:3px;
+  padding:7px 12px;
+  font-size:11px;
+  z-index:2;
+}
+#back-overview[hidden] { display:none; }
+.regional-map .ocean-label { display:none; }
+.regional-map .map-note { display:none; }
+
+.map-editor {
+  position:absolute;
+  bottom:12px;
+  left:12px;
+  z-index:3;
+  width:240px;
+  max-height:calc(100% - 65px);
+  overflow:auto;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:#102730f5;
+  font-size:11px;
+  cursor:default;
+}
+.map-editor[hidden] { display:none; }
+.map-editor label, .map-editor output, .map-editor small { display:block; margin:6px 0; }
+.map-editor select, .map-editor textarea {
+  width:100%;
+  background:var(--bg);
+  color:var(--text);
+  border:1px solid var(--line);
+  padding:4px;
+  font:inherit;
+}
+.map-editor textarea { resize:vertical; }
+.map-editor button {
+  padding:5px 10px;
+  border:1px solid var(--line);
+  background:#21443e;
+  border-radius:3px;
+  font:inherit;
+}
+
+/* Archive content stays within the established single-column cards. */
+.archive-number {
+  flex-shrink:0;
+  color:var(--muted);
+  font-size:9px;
+  letter-spacing:1px;
+  margin-right:18px;
+}
+.species-card summary { gap:16px; padding-block:8px; }
+.archive-thumbnail {
+  width:52px;
+  height:42px;
+  object-fit:cover;
+  background:#0b1e27;
+  flex-shrink:0;
+  border-radius:2px;
+}
+.card-overview { display:flex; flex-direction:column; min-width:0; }
+.card-overview .card-name {
+  font-size:16px;
+  line-height:1.35;
+  border:0;
+  padding:0;
+}
+.card-overview .card-scientific { margin:0; font-size:10px; line-height:1.4; }
+.card-meta { color:var(--muted); font-size:9px; line-height:1.5; }
+.species-card[open] summary { padding-block:8px; }
+.animal-photo { margin:0; min-width:0; background:#142d35; }
+.animal-photo [data-photo-slot] > img {
+  display:block;
+  width:100%;
+  height:clamp(110px, 18dvh, 170px);
+  object-fit:cover;
+}
+.animal-photo figcaption {
+  padding:6px 10px;
+  font-size:8px;
+  line-height:1.6;
+  color:var(--muted);
+}
+.animal-photo figcaption span { display:block; }
+.animal-photo a { color:var(--cyan); }
+.detail-grid .animal-photo [data-photo-slot] > img { height:210px; }
+.archive-research { margin-top:18px; }
+.archive-research > div { grid-template-columns:70px 1fr; padding-block:8px; }
+.archive-research dt { color:var(--cyan); }
+
+/* User photo loading shares the same slot and dimensions as its fallback. */
+[data-photo-slot] [hidden] { display:none !important; }
+.animal-photo .photo-fallback { height:clamp(110px, 18dvh, 170px); }
+.detail-grid .animal-photo .photo-fallback { height:210px; }
+.archive-thumbnail {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.archive-thumbnail img { width:100%; height:100%; object-fit:cover; }
+.thumbnail-placeholder { color:var(--muted); font-size:22px; }
+
+/* Guide and mission invitation use the existing utility dialog and palette. */
+#utility-dialog {
+  max-height:85dvh;
+  overscroll-behavior:contain;
+}
+#utility-dialog[data-mode="guide"] { width:560px; }
+.exploration-guide-steps { list-style:none; padding:0; margin:0; }
+.exploration-guide-steps li {
+  display:grid;
+  grid-template-columns:28px minmax(0, 1fr);
+  gap:14px;
+  padding:16px 0;
+  border-bottom:1px solid var(--line);
+}
+.exploration-guide-icon { color:var(--accent); font-size:23px; line-height:1.4; }
+.exploration-guide-steps h3, .exploration-guide-reminder h3 {
+  margin:3px 0 8px;
+  font-size:14px;
+  font-weight:400;
+  letter-spacing:1px;
+}
+.exploration-guide-steps p, .exploration-guide-reminder p, .mission-description {
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.95;
+}
+.exploration-guide-reminder { margin:22px 0; }
+.exploration-guide-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+.exploration-guide-actions .guide-primary { border-color:#82b69a; background:#21443e; }
+.exploration-guide-actions .guide-primary:hover { background:#31584c; }
+@media (max-width:600px), (max-height:600px) {
+  #utility-dialog[data-mode="guide"], #utility-dialog[data-mode="intro"] {
+    padding:30px 22px 22px;
+    max-width:94vw;
+    max-height:90dvh;
+  }
+}
+
+/* Phase 1 researcher card: fixed identity above an independent scroll area. */
+#utility-dialog[open][data-mode="profile"] {
+  display:grid;
+  grid-template-rows:minmax(0, 1fr);
+  width:640px;
+  height:80vh;
+  height:80dvh;
+  max-height:80dvh;
+  padding:32px;
+  overflow:hidden;
+  animation:researcher-modal-in .2s ease-out both;
+}
+#utility-dialog[data-mode="profile"] #dialog-content {
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+#utility-dialog[data-mode="profile"] #dialog-content > .eyebrow,
+#utility-dialog[data-mode="profile"] #dialog-content > h2 { flex-shrink:0; }
+.researcher-profile { display:flex; flex-direction:column; flex:1; min-height:0; gap:20px; }
+.researcher-identity {
+  display:grid;
+  grid-template-columns:56px minmax(0, 1fr) auto;
+  gap:14px;
+  padding:16px;
+  flex-shrink:0;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:#142d35;
+  max-height:max(80px, calc(80dvh - 220px));
+  overflow:auto;
+}
+.researcher-avatar {
+  width:56px;
+  height:66px;
+  display:flex;
+  align-items:center;
+  background:#0c2029;
+  border:1px solid #36534f;
+  border-radius:3px;
+}
+.researcher-avatar svg { width:100%; height:100%; fill:#88a99f; padding:8px; }
+.researcher-name-display { display:flex; align-items:center; gap:10px; margin:6px 0 2px; }
+.researcher-name-display strong { font-size:21px; font-weight:400; overflow-wrap:anywhere; }
+.researcher-edit { border:1px solid var(--line); background:transparent; border-radius:3px; padding:2px 8px; color:var(--accent); }
+.researcher-edit:hover { background:#21443e; }
+.researcher-save-status { display:block; min-height:18px; color:var(--accent); font-size:10px; }
+.researcher-identity-fields { border:0; padding:0; }
+.researcher-identity-fields > div { grid-template-columns:75px minmax(0, 1fr); padding:3px 0; }
+.researcher-name-form label { display:block; margin:6px 0; font-size:11px; color:var(--muted); }
+.researcher-name-form input {
+  width:100%;
+  padding:8px 10px;
+  background:var(--bg);
+  border:1px solid #46615f;
+  border-radius:3px;
+  color:var(--text);
+}
+.researcher-name-form output { display:block; text-align:right; font-size:10px; color:var(--muted); }
+#profile-name-error { margin:0; color:#e2b7a5; font-size:11px; }
+.researcher-name-actions { display:flex; gap:8px; margin:8px 0; }
+.researcher-profile [hidden] { display:none !important; }
+.researcher-scroll { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:2px 6px 2px 2px; }
+.researcher-scroll:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.researcher-scroll h3 { font-size:14px; font-weight:400; letter-spacing:1px; margin:0 0 10px; }
+.researcher-scroll p { font-size:12px; color:var(--muted); }
+.researcher-future { border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:18px; }
+@keyframes researcher-modal-in {
+  from { opacity:0; transform:scale(.96); }
+  to { opacity:1; transform:scale(1); }
+}
+@media (max-width:600px), (max-height:650px) {
+  #utility-dialog[open][data-mode="profile"] { max-width:94vw; height:80dvh; max-height:80dvh; padding:28px 20px 20px; }
+  #utility-dialog[data-mode="profile"] h2 { margin-bottom:16px; }
+  .researcher-profile { gap:12px; }
+  .researcher-identity { grid-template-columns:48px minmax(0, 1fr) auto; gap:12px; padding:14px; }
+  .researcher-avatar { width:48px; height:66px; }
+}
+@media (max-height:350px) {
+  /* Very short windows prioritize access to all controls over a fixed card. */
+  #utility-dialog[open][data-mode="profile"] { overflow:auto; }
+  #utility-dialog[data-mode="profile"] #dialog-content { display:block; }
+  .researcher-profile { display:block; }
+  .researcher-identity { max-height:none; margin-bottom:12px; }
+  .researcher-scroll { overflow:visible; }
+}
+
+/* Only the compact identity row is fixed; disclosures live in the scroll area. */
+.researcher-save-status:empty { display:none; }
+.researcher-summary-title { display:block; color:var(--muted); font-size:11px; }
+.researcher-details-toggle {
+  align-self:start;
+  width:30px;
+  height:30px;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:3px;
+  background:transparent;
+  color:var(--accent);
+}
+.researcher-details-toggle:hover { background:#21443e; }
+.researcher-details-arrow { display:inline-block; font-size:20px; transition:transform .18s ease; }
+.researcher-details-toggle[aria-expanded="true"] .researcher-details-arrow { transform:rotate(180deg); }
+.researcher-details {
+  display:grid;
+  grid-template-rows:0fr;
+  opacity:0;
+  transition:grid-template-rows .18s ease, opacity .18s ease;
+}
+.researcher-details[data-expanded="true"] { grid-template-rows:1fr; opacity:1; }
+.researcher-details-inner { min-height:0; overflow:hidden; }
+.researcher-details .researcher-identity-fields {
+  padding:0 12px;
+  border-left:1px solid var(--line);
+}
+.researcher-details + .researcher-future { margin-top:0; transition:margin-top .18s ease; }
+.researcher-details[data-expanded="true"] + .researcher-future { margin-top:18px; }
+
+/* Phase 2 adds derived progress only inside the existing researcher scroll area. */
+.researcher-statistics { margin-bottom:24px; }
+.researcher-statistics-layout { display:grid; grid-template-columns:120px minmax(0, 1fr); gap:18px; align-items:center; }
+.researcher-progress-ring { position:relative; width:120px; height:120px; }
+.researcher-progress-ring svg { display:block; width:100%; height:100%; transform:rotate(-90deg); }
+.researcher-progress-ring circle { fill:none; stroke-width:7; }
+.researcher-ring-track { stroke:#29423f; }
+.researcher-ring-progress { stroke:#a5c6a3; stroke-dasharray:100; stroke-dashoffset:100; transition:stroke-dashoffset .35s ease; }
+.researcher-progress-ring > div { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.researcher-progress-ring strong { font-size:24px; font-weight:400; color:var(--accent); }
+.researcher-progress-ring span { font-size:10px; color:var(--muted); }
+.researcher-statistics-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; border:0; padding:0; }
+.researcher-statistics-grid > div { display:block; padding:12px; border:1px solid var(--line); border-radius:4px; background:#142d35; }
+.researcher-statistics-grid dt { font-size:10px; }
+.researcher-statistics-grid dd { margin-top:4px; font-size:19px; color:var(--text); }
+.researcher-badge-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; }
+.researcher-badge {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  padding:14px 8px;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:#102730;
+}
+.researcher-badge:hover { background:#19353a; border-color:#6a897b; }
+.researcher-badge[aria-pressed="true"] { border-color:var(--accent); background:#1c3839; }
+.researcher-badge-symbol { display:flex; align-items:center; justify-content:center; width:48px; height:48px; border:1px solid currentColor; border-radius:50%; background:#213a37; color:var(--badge-color); filter:grayscale(1); opacity:.65; }
+.researcher-badge-symbol svg { width:32px; height:32px; }
+.researcher-badge.is-unlocked .researcher-badge-symbol { filter:none; opacity:1; }
+.researcher-badge strong { font-size:12px; font-weight:400; }
+.researcher-badge small { color:var(--muted); font-size:9px; }
+.researcher-badge.is-unlocked small { color:var(--accent); }
+.researcher-badge-details { margin-top:14px; padding:14px; border-left:2px solid #91b595; background:#19333b; }
+.researcher-badge-details h4 { margin:0 0 8px; font-weight:400; color:var(--accent); }
+.researcher-badge-details p { margin:0 0 8px; }
+.researcher-badge-details > span { font-size:11px; color:var(--muted); }
+.researcher-management { margin-top:24px; }
+.researcher-details + .researcher-statistics { margin-top:0; transition:margin-top .18s ease; }
+.researcher-details[data-expanded="true"] + .researcher-statistics { margin-top:18px; }
+#toast { display:flex; align-items:center; gap:12px; max-width:min(560px, 90vw); }
+.outcome-toast-icon { flex-shrink:0; width:32px; height:32px; }
+.outcome-toast-icon svg { display:block; width:100%; height:100%; }
+.outcome-toast-copy { display:flex; flex-direction:column; gap:2px; }
+.outcome-toast-copy strong { font-weight:400; }
+.outcome-toast-copy > span { font-size:11px; }
+@media (max-width:480px) {
+  .researcher-statistics-layout { grid-template-columns:minmax(0, 1fr); }
+  .researcher-progress-ring { margin:auto; }
+  .researcher-badge-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+}
+
+/* Final research outcomes stay below the fixed identity row. */
+.researcher-complete { margin:0 0 24px; padding:16px; border:1px solid #6f9277; border-radius:4px; background:#19382f; }
+.researcher-complete h3 { margin:6px 0 8px; color:var(--accent); }
+.researcher-complete p { margin:0 0 8px; }
+.researcher-complete small { color:#bdcda9; font-size:10px; }
+.researcher-journal { margin-top:24px; padding:16px 18px; border-left:2px solid #a8b58d; background:#1a3030; }
+.researcher-journal h3 { margin:6px 0 10px; }
+.researcher-journal p { margin:0; line-height:2; }
+.researcher-data-management { margin-top:24px; border-top:1px solid var(--line); }
+.researcher-data-management > summary, .researcher-data-management[open] > summary { min-height:0; padding:14px 2px; font-size:13px; }
+.researcher-data-management > summary > span { margin-left:auto; transition:transform .18s ease; }
+.researcher-data-management[open] > summary > span { transform:rotate(180deg); }
+.researcher-management-content { padding:0 2px 12px; }
+.researcher-management-content h4 { margin:14px 0 8px; font-size:13px; font-weight:400; }
+.researcher-full-reset { margin-top:20px; padding-top:6px; border-top:1px solid var(--line); }
+.researcher-danger { color:#e3c1b0; border-color:#88695c; background:#352e2a; }
+.researcher-danger:hover { background:#4b3830; }
+.researcher-full-reset-dialog { width:440px; max-width:90vw; max-height:80dvh; padding:28px; overscroll-behavior:contain; }
+.researcher-full-reset-dialog h3 { margin:10px 0 16px; font-size:20px; font-weight:400; }
+.researcher-full-reset-dialog p { font-size:12px; line-height:1.9; color:var(--muted); }
+.researcher-full-reset-dialog [data-full-reset-error] { color:#e3bba7; }
+.researcher-reset-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-top:20px; }
+.researcher-reset-actions button:disabled { opacity:.5; cursor:wait; }
