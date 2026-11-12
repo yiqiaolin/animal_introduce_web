@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { renderAnimalPhoto, bindAnimalPhotos } from './research-panel.js';
 
 function discoveryRegion(animal) {
-  const record = state.records.find(record => record.id === animal.id);
+  const record = state.records.find(record => record.type !== 'region_entered' && record.id === animal.id);
   const region = regions[record?.regionId] || Object.values(regions).find(r => r.animals.some(p => p.id === animal.id));
   return region ? region.name + '（探索示意）' : '未記錄';
 }

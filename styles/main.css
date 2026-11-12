@@ -1042,6 +1042,112 @@ dialog h2 {
 .archive-thumbnail img { width:100%; height:100%; object-fit:cover; }
 .thumbnail-placeholder { color:var(--muted); font-size:22px; }
 
+/* Discovery log: display-only timeline within the existing scrollable modal. */
+#utility-dialog[data-mode="records"] {
+  width:640px;
+  background:#112824;
+  border-color:#39574c;
+}
+#utility-dialog[data-mode="records"] .discovery-log-timeline {
+  list-style:none;
+  margin:0;
+  padding:0 0 0 32px;
+}
+#utility-dialog[data-mode="records"] .discovery-log-event {
+  position:relative;
+  padding:0 0 20px;
+  min-width:0;
+  --log-accent:#b5cda8;
+}
+#utility-dialog[data-mode="records"] .discovery-log-event--region { --log-accent:#8fbfc3; }
+#utility-dialog[data-mode="records"] .discovery-log-event::before {
+  content:"";
+  position:absolute;
+  top:13px;
+  bottom:-13px;
+  left:-22px;
+  width:1px;
+  background:#39574c;
+}
+#utility-dialog[data-mode="records"] .discovery-log-event:last-child { padding-bottom:0; }
+#utility-dialog[data-mode="records"] .discovery-log-event:last-child::before { display:none; }
+#utility-dialog[data-mode="records"] .discovery-log-node {
+  position:absolute;
+  left:-32px;
+  top:10px;
+  width:21px;
+  height:21px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--log-accent);
+  border-radius:50%;
+  background:#112824;
+  color:var(--log-accent);
+  font-size:12px;
+}
+#utility-dialog[data-mode="records"] .discovery-log-card {
+  display:grid;
+  grid-template-columns:104px minmax(0, 1fr);
+  gap:16px;
+  padding:14px;
+  border:1px solid #39574c;
+  border-radius:4px;
+  background:#173129;
+}
+#utility-dialog[data-mode="records"] .discovery-log-image {
+  position:relative;
+  align-self:start;
+  aspect-ratio:1;
+  min-width:0;
+  border:1px solid #39574c;
+  border-radius:3px;
+  background:#10251f;
+  overflow:hidden;
+}
+#utility-dialog[data-mode="records"] .discovery-log-image img { display:block; width:100%; height:100%; object-fit:cover; }
+#utility-dialog[data-mode="records"] .discovery-log-placeholder {
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:6px;
+  color:#9caf9f;
+  font-size:10px;
+  text-align:center;
+}
+#utility-dialog[data-mode="records"] .discovery-log-placeholder > span:first-child { font-size:24px; }
+#utility-dialog[data-mode="records"] .discovery-log-info { min-width:0; overflow-wrap:anywhere; }
+#utility-dialog[data-mode="records"] .discovery-log-tag { color:var(--log-accent, #b5cda8); font-size:9px; letter-spacing:1.3px; }
+#utility-dialog[data-mode="records"] .discovery-log-info h3 { margin:7px 0; font-size:18px; font-weight:400; letter-spacing:1px; }
+#utility-dialog[data-mode="records"] .discovery-log-time { display:block; color:#9caf9f; font-size:11px; font-variant-numeric:tabular-nums; }
+#utility-dialog[data-mode="records"] .discovery-log-info p { margin:8px 0 0; color:#c9d6c7; font-size:12px; line-height:1.7; }
+#utility-dialog[data-mode="records"] .discovery-log-empty { padding:24px 0; text-align:center; }
+#utility-dialog[data-mode="records"] .discovery-log-empty-symbol { display:block; margin-bottom:20px; color:#b5cda8; font-size:48px; }
+#utility-dialog[data-mode="records"] .discovery-log-empty h3 { margin:16px 0; font-size:22px; font-weight:400; letter-spacing:2px; }
+#utility-dialog[data-mode="records"] .discovery-log-empty p { max-width:380px; margin:0 auto; color:#9caf9f; font-size:13px; line-height:1.9; }
+#utility-dialog[data-mode="records"] .discovery-log-complete {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-bottom:24px;
+  padding:16px;
+  border:1px solid #716746;
+  border-radius:4px;
+  background:#283329;
+}
+#utility-dialog[data-mode="records"] .discovery-log-medal { flex:0 0 36px; width:36px; height:44px; color:#c6b57e; }
+#utility-dialog[data-mode="records"] .discovery-log-complete > div { min-width:0; overflow-wrap:anywhere; }
+#utility-dialog[data-mode="records"] .discovery-log-complete .discovery-log-tag { color:#c6b57e; }
+#utility-dialog[data-mode="records"] .discovery-log-complete h3 { margin:6px 0; font-size:18px; font-weight:400; letter-spacing:1px; }
+#utility-dialog[data-mode="records"] .discovery-log-complete p { margin:0; color:#c9d6c7; font-size:12px; line-height:1.7; }
+@media (max-width:560px) {
+  #utility-dialog[data-mode="records"] { padding:36px 18px 24px; }
+  #utility-dialog[data-mode="records"] .discovery-log-card { grid-template-columns:72px minmax(0, 1fr); gap:10px; padding:10px; }
+  #utility-dialog[data-mode="records"] .discovery-log-tag { font-size:8px; letter-spacing:.6px; }
+}
+
 /* Guide and mission invitation use the existing utility dialog and palette. */
 #utility-dialog {
   max-height:85dvh;

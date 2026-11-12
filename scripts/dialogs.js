@@ -1,5 +1,5 @@
-import { animals, getAnimal } from './data/animals.js';
-import { state } from './state.js';
+import { animals } from './data/animals.js';
+import { renderDiscoveryLog, bindDiscoveryLog } from './discovery-log.js';
 import { renderResearcherProfile, bindResearcherProfile } from './researcher-profile.js';
 import { hasHandledIntro, markIntroHandled, renderGuide, renderInvitation } from './exploration-guide.js';
 
@@ -19,13 +19,7 @@ function dialogBody(type) {
     <div class="hint-row"><span>${animal.category}</span><p>${animal.habitat}</p></div>
   `).join('') + '<p class="notice">線索及座標為示範用途，不代表可供野外追蹤的真實位置。</p>';
 
-  if (type === 'records') return state.records.length
-    ? state.records.map(record => `
-      <div class="hint-row">
-        <span>${record.time?.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }) || '時間未記錄'}</span>
-        <p>首次發現 · ${getAnimal(record.id).name}</p>
-      </div>`).join('')
-    : '<div class="dialog-empty">尚無發現紀錄。<p>回到地圖，展開你的第一場探索。</p></div>';
+  if (type === 'records') return renderDiscoveryLog();
 
   return renderResearcherProfile();
 }
@@ -99,6 +93,7 @@ export function initDialogs(onReset) {
     dialog.dataset.mode = type;
     session = new AbortController();
     const options = { signal: session.signal };
+    if (type === 'records') bindDiscoveryLog(content);
     if (type === 'profile') bindResearcherProfile(content, { signal: session.signal, onReset });
     let startedOutside = false;
     dialog.addEventListener('pointerdown', event => { startedOutside = outside(event); }, options);

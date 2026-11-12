@@ -61,7 +61,7 @@ async function setup(seen=false){
  const guideUrl=new URL(`../scripts/exploration-guide.js?guide=${revision++}`,import.meta.url);
  const source=readFileSync(new URL('../scripts/dialogs.js',import.meta.url),'utf8')
   .replace("'./data/animals.js'",JSON.stringify(new URL('../scripts/data/animals.js',import.meta.url).href))
-  .replace("'./state.js'",JSON.stringify(new URL('../scripts/state.js',import.meta.url).href))
+  .replace("'./discovery-log.js'",JSON.stringify(new URL('../scripts/discovery-log.js',import.meta.url).href))
   .replace("'./researcher-profile.js'",JSON.stringify(new URL('../scripts/researcher-profile.js',import.meta.url).href))
   .replace("'./exploration-guide.js'",JSON.stringify(guideUrl.href));
  const {initDialogs}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
@@ -185,4 +185,66 @@ test('profile focus loop includes the native data-management summary',async()=>{
  assert.equal(fire('keydown',{key:'Tab'}).defaultPrevented,false);
  assert.equal(fire('keydown',{key:'Tab',shiftKey:true}).defaultPrevented,false);
  dialog.close();await settle();
+});
+
+test('records timeline retains modal dismissal, scroll reset, focus restoration and saved state', async () => {
+ const {state}=await import('../scripts/state.js');
+ const previous=state.records;
+ try {
+  state.records=[
+   {type:'species_discovered',id:'bear',time:null,regionId:null},
+   {type:'region_entered',id:'mountain-forest',time:new Date('2026-11-12T00:00:00Z'),regionId:'mountain-forest'}
+  ];
+  const {dialog,content,toolbar,root,fire}=await setup(true);
+  const savedBefore=[...storage];
+  for(const method of ['x','backdrop','escape']) {
+   toolbar[2].onclick();
+   assert.equal(dialog.dataset.mode,'records');
+   assert.equal(dialog.open,true);
+   assert.equal(root.style.overflow,'hidden');
+   assert.equal(dialog.scrollTop,0);
+   assert.match(content.innerHTML,/discovery-log-timeline/);
+   assert.match(content.innerHTML,/SPECIES DISCOVERED/);
+   assert.match(content.innerHTML,/REGION DISCOVERED/);
+   fire('pointerdown');fire('click');assert.equal(dialog.open,true);
+   dialog.scrollTop=200;
+   if(method==='x')fire('click',{close:true});
+   if(method==='backdrop'){fire('pointerdown',{outside:true});fire('click',{outside:true});}
+   if(method==='escape')fire('cancel');
+   await settle();
+   assert.equal(dialog.open,false);
+   assert.equal(root.style.overflow,'');
+   assert.equal(document.activeElement,toolbar[2]);
+   assert.deepEqual([...storage],savedBefore);
+  }
+  assert.equal(state.records.length,2);
+ } finally {state.records=previous;}
+});
+
+test('reopening records reflects new completion and progress reset without an extra event', async () => {
+ const model=await import('../scripts/state.js');
+ const {animals}=await import('../scripts/data/animals.js');
+ const {regions}=await import('../scripts/data/regions.js');
+ const {state}=model;
+ const original={selected:state.selected,discovered:new Set(state.discovered),visitedRegions:new Set(state.visitedRegions),records:state.records};
+ const savedBefore=[...storage];
+ try {
+  model.resetProgress();
+  const {dialog,content,toolbar,fire}=await setup(true);
+  toolbar[2].onclick();assert.doesNotMatch(content.innerHTML,/EXPLORATION COMPLETE/);
+  fire('cancel');await settle();
+  animals.forEach(animal=>model.selectAnimal(animal.id));
+  Object.keys(regions).forEach(id=>model.visitRegion(id));
+  toolbar[2].onclick();assert.match(content.innerHTML,/EXPLORATION COMPLETE/);
+  assert.equal(state.records.length,8);
+  fire('cancel');await settle();
+  model.resetProgress();
+  toolbar[2].onclick();assert.doesNotMatch(content.innerHTML,/EXPLORATION COMPLETE/);
+  assert.match(content.innerHTML,/尚無探索紀錄/);
+  assert.equal(dialog.scrollTop,0);
+  fire('cancel');await settle();
+ } finally {
+  Object.assign(state,original);
+  storage.clear();savedBefore.forEach(([key,value])=>storage.set(key,value));
+ }
 });

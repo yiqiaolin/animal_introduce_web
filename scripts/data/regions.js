@@ -3,6 +3,7 @@ export const regions = {
   'mountain-forest': {
     id: 'mountain-forest',
     name: '山地森林研究區',
+    description: '探索山地森林，尋找臺灣黑熊與臺灣獼猴。',
     image: 'assets/map/mountain-forest.png',
     entrance: { x: 50, y: 58 }, // Yushan-area mountains; estimated against the illustrated island outline.
     minScale: 1,
@@ -16,6 +17,7 @@ export const regions = {
   'lowland-forest': {
     id: 'lowland-forest',
     name: '低海拔森林研究區',
+    description: '觀察淺山與林緣，尋找石虎與臺灣藍鵲。',
     image: 'assets/map/lowland-forest.png',
     entrance: { x: 44, y: 30 }, // Tongluo/Tongxiao western foothills; illustration estimate.
     minScale: 1,
@@ -29,6 +31,7 @@ export const regions = {
   'alpine-stream': {
     id: 'alpine-stream',
     name: '高山溪流研究區',
+    description: '探索高山溪流水域，尋找櫻花鉤吻鮭。',
     image: 'assets/map/alpine-stream.png',
     entrance: { x: 63, y: 29 }, // Wuling/Qijiawan; slightly north-shifted to match the requested visual ordering.
     minScale: 1,

@@ -50,25 +50,44 @@ const identity = {
 const discovered = new Set();
 const records = [];
 const visitedRegions = new Set();
-if (saved?.version === 1) {
+function recordTime(value) {
+  const date = typeof value === 'string' ? new Date(value) : null;
+  return date && Number.isFinite(date.getTime()) ? date : null;
+}
+
+function newestFirst(a, b) {
+  if (!a.time) return b.time ? 1 : 0;
+  if (!b.time) return -1;
+  return b.time.getTime() - a.time.getTime();
+}
+
+if ([1, 2].includes(saved?.version)) {
   if (Array.isArray(saved.visitedRegions)) saved.visitedRegions.filter(id=>validRegionIds.has(id)).forEach(id=>visitedRegions.add(id));
-  if (Array.isArray(saved.discovered)) saved.discovered.filter(id => validIds.has(id)).forEach(id => discovered.add(id));
-  const recorded = new Set();
+  if (Array.isArray(saved.discovered)) saved.discovered.filter(id=>validIds.has(id)).forEach(id=>discovered.add(id));
+  const recorded = new Map();
   if (Array.isArray(saved.records)) {
     saved.records.forEach(record => {
-      if (!record || !validIds.has(record.id) || recorded.has(record.id)) return;
-      recorded.add(record.id);
-      discovered.add(record.id);
-      const date = typeof record.time === 'string' ? new Date(record.time) : null;
-      records.push({
-        id: record.id,
-        time: date && Number.isFinite(date.getTime()) ? date : null,
-        regionId: regions[record.regionId]?.animals?.some(a => a.id === record.id) ? record.regionId : null
-      });
+      if (!record || typeof record !== 'object') return;
+      // Untyped v1 records are animal discoveries. Unknown event types are ignored.
+      const type = record.type ?? (saved.version === 1 ? 'species_discovered' : null);
+      const species = type === 'species_discovered';
+      if (!(species ? validIds.has(record.id) : type === 'region_entered' && validRegionIds.has(record.id))) return;
+      const candidate = {
+        type, id: record.id, time: recordTime(record.time),
+        regionId: species
+          ? (validRegionIds.has(record.regionId) && regions[record.regionId].animals.some(a=>a.id===record.id) ? record.regionId : null)
+          : record.id
+      };
+      const key = `${type}:${record.id}`;
+      const previous = recorded.get(key);
+      // Duplicate/corrupt saves retain the earliest known occurrence, never now().
+      if (!previous || (candidate.time && (!previous.time || candidate.time < previous.time))) recorded.set(key, candidate);
+      if (species) discovered.add(record.id);
+      else visitedRegions.add(record.id);
     });
   }
-  // Recover partial saves without inventing a first-discovery timestamp.
-  discovered.forEach(id => { if (!recorded.has(id)) records.push({ id, time: null, regionId: null }); });
+  records.push(...[...recorded.values()].sort(newestFirst));
+  // Legacy unlock/visit flags without records remain flags: no invented events.
 }
 
 export const state = {
@@ -104,7 +123,7 @@ export function subscribeExploration(listener, { signal } = {}) {
 export function persistProgress({ reason = 'records-updated', before = null, animalId = null } = {}) {
   if (resetInProgress) return;
   write(PROGRESS_KEY, {
-    version: 1,
+    version: 2,
     selected: state.selected,
     discovered: [...state.discovered],
     visitedRegions: [...state.visitedRegions],
@@ -115,6 +134,26 @@ export function persistProgress({ reason = 'records-updated', before = null, ani
     ? getNewOutcomeNotifications(before, summary) : [];
   const event = { type:'exploration:changed', reason, animalId, summary, notifications };
   explorationListeners.forEach(listener=>listener(event));
+}
+
+// Metadata is resolved from the existing catalogs, never duplicated in storage.
+// Unknown legacy timestamps/regions remain null and sort after dated events.
+export function getExplorationRecords() {
+  return state.records.map(record => {
+    const species = record.type === 'species_discovered' || !record.type;
+    const entity = species ? animals.find(a=>a.id===record.id) : regions[record.id];
+    const region = regions[record.regionId];
+    return {
+      ...record,
+      type: species ? 'species_discovered' : 'region_entered',
+      time: record.time ? new Date(record.time.getTime()) : null,
+      animalId: species ? record.id : null,
+      name: entity?.name ?? null,
+      image: species ? entity?.illustration ?? null : entity?.image ?? null,
+      regionName: region?.name ?? null,
+      description: species ? null : entity?.description ?? null
+    };
+  }).sort(newestFirst);
 }
 
 export const researcherNameLength = value => Array.from(value).length;
@@ -164,7 +203,8 @@ export function selectAnimal(id) {
   if (isNew) {
     state.discovered.add(id);
     const region = Object.values(regions).find(r => r.animals.some(a => a.id === id));
-    state.records.unshift({ id, time: new Date(), regionId: region?.id ?? null });
+    state.records.unshift({ type:'species_discovered', id, time:new Date(), regionId:region?.id ?? null });
+    state.records.sort(newestFirst);
   }
   persistProgress({reason:isNew ? 'species-discovered' : 'species-selected', before, animalId:id});
   return isNew;
@@ -174,6 +214,8 @@ export function visitRegion(id) {
   if (resetInProgress || !validRegionIds.has(id) || state.visitedRegions.has(id)) return false;
   const before = getResearcherSummary(state);
   state.visitedRegions.add(id);
+  state.records.unshift({ type:'region_entered', id, regionId:id, time:new Date() });
+  state.records.sort(newestFirst);
   persistProgress({reason:'region-visited', before});
   return true;
 }

@@ -54,7 +54,7 @@ test('region visits persist by ID, deduplicate, and old saves do not infer visit
  assert.equal(model.visitRegion('山地森林研究區'),false);
  assert.equal(model.visitRegion('__proto__'),false);
  assert.equal(model.state.visitedRegions.size,1);
- assert.equal(model.state.records.length,1);
+ assert.equal(model.state.records.length,2);
  const events=[];model.subscribeExploration(event=>events.push(event));
  model.visitRegion('lowland-forest');model.visitRegion('alpine-stream');model.visitRegion('alpine-stream');
  assert.equal(events.length,2);
@@ -151,7 +151,7 @@ test('dashboard handles locked badge details, switching, collapse and live title
  regionIds.forEach(id=>model.visitRegion(id));assert.equal(find('[data-profile-regions]').textContent,'3 / 3');
  assert.ok(root.badges.every(b=>b.classes.has('is-unlocked')));
  click(root.badges[4]);assert.match(find('[data-badge-detail-status]').textContent,/已解鎖/);
- model.state.records.pop();model.persistProgress();assert.equal(find('[data-profile-records]').textContent,'4 筆');
+ model.state.records.pop();model.persistProgress();assert.equal(find('[data-profile-records]').textContent,'7 筆');
  controller.abort();model.resetProgress();
  assert.equal(find('[data-profile-percent]').textContent,'100%'); // Closed views unsubscribe.
  const reopened=new Element();reopened.badges=badgeDefinitions.map(badge=>{const b=new Element();b.dataset.badge=badge.id;return b;});
