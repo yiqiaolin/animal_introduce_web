@@ -156,7 +156,7 @@ test('full reset clears only project data, cancels old outcomes and boots new id
   querySelector:selector=>selector==='#utility-dialog'?dialog:selector==='#dialog-content'?content:trigger,
   querySelectorAll:()=>[]};
  const source=readFileSync(new URL('../scripts/dialogs.js',import.meta.url),'utf8')
-  .replace("'./data/animals.js'",JSON.stringify(new URL('../scripts/data/animals.js',import.meta.url).href))
+  .replace("'./exploration-hint-card.js'",JSON.stringify(new URL('../scripts/exploration-hint-card.js',import.meta.url).href))
   .replace("'./discovery-log.js'",JSON.stringify(new URL('../scripts/discovery-log.js',import.meta.url).href))
   .replace("'./researcher-profile.js'",JSON.stringify(new URL('../scripts/researcher-profile.js',import.meta.url).href))
   .replace("'./exploration-guide.js'",JSON.stringify(guideUrl.href));

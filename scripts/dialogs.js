@@ -1,4 +1,4 @@
-import { animals } from './data/animals.js';
+import { getExplorationHintView } from './exploration-hint-card.js';
 import { renderDiscoveryLog, bindDiscoveryLog } from './discovery-log.js';
 import { renderResearcherProfile, bindResearcherProfile } from './researcher-profile.js';
 import { hasHandledIntro, markIntroHandled, renderGuide, renderInvitation } from './exploration-guide.js';
@@ -6,7 +6,7 @@ import { hasHandledIntro, markIntroHandled, renderGuide, renderInvitation } from
 const titles = {
   intro: ['RESEARCH MISSION / 001', '歡迎加入探索計畫'],
   guide: ['EXPLORATION GUIDE', '探索指南'],
-  hints: ['FIELD NOTES', '探索提示'],
+  hints: ['ECOLOGICAL RESEARCH HINT', '探索提示'],
   records: ['DISCOVERY LOG', '發現紀錄'],
   profile: ['RESEARCHER PROFILE', '研究員檔案']
 };
@@ -15,16 +15,12 @@ function dialogBody(type) {
   if (type === 'guide') return renderGuide();
   if (type === 'intro') return renderInvitation();
 
-  if (type === 'hints') return animals.map(animal => `
-    <div class="hint-row"><span>${animal.category}</span><p>${animal.habitat}</p></div>
-  `).join('') + '<p class="notice">線索及座標為示範用途，不代表可供野外追蹤的真實位置。</p>';
-
   if (type === 'records') return renderDiscoveryLog();
 
   return renderResearcherProfile();
 }
 
-export function initDialogs(onReset) {
+export function initDialogs(onReset, { getCurrentRegionId = () => null } = {}) {
   const dialog = document.querySelector('#utility-dialog');
   const content = document.querySelector('#dialog-content');
   const guideTrigger = document.querySelector('[data-dialog="guide"]');
@@ -85,8 +81,10 @@ export function initDialogs(onReset) {
 
   function open(type, trigger = guideTrigger) {
     if (session || dialog.open) return; // Includes the queued close/animation interval.
-    const [english, title] = titles[type];
-    content.innerHTML = `<span class="eyebrow">${english}</span><h2 id="utility-dialog-title" tabindex="-1">${title}</h2>${dialogBody(type)}`;
+    const hintView = type === 'hints' ? getExplorationHintView(getCurrentRegionId()) : null;
+    const [english, title] = hintView ? [hintView.english, hintView.title] : titles[type];
+    const headingClass = hintView?.headingClass ? ` class="${hintView.headingClass}"` : '';
+    content.innerHTML = `<span class="eyebrow${headingClass ? ' ecological-hint-achievement-label' : ''}">${english}</span><h2 id="utility-dialog-title" tabindex="-1"${headingClass}>${title}</h2>${hintView ? hintView.body : dialogBody(type)}`;
     currentType = type;
     returnFocus = trigger;
     nextGuide = false;

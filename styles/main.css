@@ -1148,6 +1148,30 @@ dialog h2 {
   #utility-dialog[data-mode="records"] .discovery-log-tag { font-size:8px; letter-spacing:.6px; }
 }
 
+/* A single ecological hint card uses the native utility dialog's focus/scroll. */
+#utility-dialog[data-mode="hints"] { width:520px; background:#112824; border-color:#39574c; box-shadow:0 20px 70px #03181080; }
+#utility-dialog[data-mode="hints"] #dialog-content > .eyebrow { color:#b5cda8; font-size:9px; letter-spacing:1.6px; }
+#utility-dialog[data-mode="hints"] #dialog-content > h2 { margin-bottom:22px; }
+#utility-dialog[data-mode="hints"] .ecological-hint-card h3 { margin:0 0 14px; color:#dce8d4; font-size:22px; font-weight:400; letter-spacing:1px; }
+#utility-dialog[data-mode="hints"] .ecological-hint-clue { margin:0 0 24px; color:#c9d6c7; font-size:14px; line-height:1.9; }
+#utility-dialog[data-mode="hints"] .ecological-hint-details { margin:0; padding:6px 16px; border:1px solid #39574c; border-radius:5px; background:#1a362c; }
+#utility-dialog[data-mode="hints"] .ecological-hint-details > div { padding:12px 0; }
+#utility-dialog[data-mode="hints"] .ecological-hint-details > div + div { border-top:1px solid #39574c; }
+#utility-dialog[data-mode="hints"] .ecological-hint-details dt { margin-bottom:6px; color:#9caf9f; font-size:11px; letter-spacing:1px; }
+#utility-dialog[data-mode="hints"] .ecological-hint-details dd { margin:0; color:#c9d6c7; font-size:13px; line-height:1.8; }
+#utility-dialog[data-mode="hints"] .ecological-hint-details .ecological-hint-location { color:#d1bf8f; }
+#utility-dialog[data-mode="hints"] .ecological-hint-card { min-width:0; overflow-wrap:anywhere; }
+#utility-dialog[data-mode="hints"] #dialog-content > .ecological-hint-achievement-label { color:#d1bf8f; }
+#utility-dialog[data-mode="hints"] #dialog-content > .ecological-hint-achievement-heading { color:#e2d4ab; font-size:26px; line-height:1.5; }
+#utility-dialog[data-mode="hints"] .ecological-hint-achievement { min-width:0; overflow-wrap:anywhere; }
+#utility-dialog[data-mode="hints"] .ecological-hint-medal { display:block; width:48px; height:56px; margin:0 0 20px; color:#c7b27d; }
+#utility-dialog[data-mode="hints"] .ecological-hint-congratulations { margin:0 0 20px; color:#d2ddcc; font-size:14px; line-height:1.9; }
+#utility-dialog[data-mode="hints"] .ecological-hint-suggestion { margin:0; padding:14px 16px; border:1px solid #536044; border-radius:5px; background:#1e362a; color:#c9d6c7; font-size:13px; line-height:1.9; }
+#utility-dialog[data-mode="hints"] .ecological-hint-achievement-footer { margin:22px 0 0; padding-top:16px; border-top:1px solid #39574c; color:#c7b27d; font-size:10px; letter-spacing:1.5px; line-height:1.8; }
+@media (max-width:560px) {
+  #utility-dialog[data-mode="hints"] { padding:38px 22px 24px; }
+}
+
 /* Guide and mission invitation use the existing utility dialog and palette. */
 #utility-dialog {
   max-height:85dvh;

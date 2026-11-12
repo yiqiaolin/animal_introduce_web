@@ -212,5 +212,7 @@ export function initMap(onSelect) {
   window.addEventListener('resize', draw);
   renderMarkers();
   draw();
+  // Read the live map instance; expose no setter or duplicate persisted state.
+  refreshMarkers.getCurrentRegionId = () => activeRegion?.id ?? null;
   return refreshMarkers;
 }

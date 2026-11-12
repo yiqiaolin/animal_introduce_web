@@ -54,18 +54,18 @@ function createDom(){
  return {dialog,content,toolbar,root,fire};
 }
 const settle=()=>new Promise(resolve=>queueMicrotask(resolve));
-async function setup(seen=false){
+async function setup(seen=false, options={}){
  storage.delete('wildlifeExplorer_introSeen');if(seen)storage.set('wildlifeExplorer_introSeen','1');
  const dom=createDom();
  // A new guide module instance simulates a fresh page and resets only its in-memory flag.
  const guideUrl=new URL(`../scripts/exploration-guide.js?guide=${revision++}`,import.meta.url);
  const source=readFileSync(new URL('../scripts/dialogs.js',import.meta.url),'utf8')
-  .replace("'./data/animals.js'",JSON.stringify(new URL('../scripts/data/animals.js',import.meta.url).href))
+  .replace("'./exploration-hint-card.js'",JSON.stringify(new URL('../scripts/exploration-hint-card.js',import.meta.url).href))
   .replace("'./discovery-log.js'",JSON.stringify(new URL('../scripts/discovery-log.js',import.meta.url).href))
   .replace("'./researcher-profile.js'",JSON.stringify(new URL('../scripts/researcher-profile.js',import.meta.url).href))
   .replace("'./exploration-guide.js'",JSON.stringify(guideUrl.href));
  const {initDialogs}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
- initDialogs(()=>{});
+ initDialogs(()=>{}, options);
  return dom;
 }
 
@@ -246,5 +246,102 @@ test('reopening records reflects new completion and progress reset without an ex
  } finally {
   Object.assign(state,original);
   storage.clear();savedBefore.forEach(([key,value])=>storage.set(key,value));
+ }
+});
+
+test('hint modal reads live region on every open, hides internal data, and preserves shared progress', async () => {
+ const model=await import('../scripts/state.js');
+ const {animals}=await import('../scripts/data/animals.js');
+ const {getExplorationHint}=await import('../scripts/exploration-hints.js');
+ const {state}=model;
+ const original={selected:state.selected,discovered:new Set(state.discovered),visitedRegions:new Set(state.visitedRegions),records:state.records};
+ const savedBefore=[...storage];
+ try {
+  model.resetProgress();
+  let currentRegionId=null, reads=0;
+  const {dialog,content,toolbar,root,fire}=await setup(true,{getCurrentRegionId:()=>{reads++;return currentRegionId;}});
+  const checkOpen=()=>{
+   const before=[...storage],records=JSON.stringify(state.records);
+   toolbar[1].onclick();
+   const expected=getExplorationHint(currentRegionId);
+   assert.equal(dialog.dataset.mode,'hints');assert.equal(dialog.open,true);
+   assert.equal(root.style.overflow,'hidden');
+   assert.ok(content.innerHTML.includes(expected.status === 'hint' ? 'ECOLOGICAL RESEARCH HINT' : 'RESEARCH ACHIEVEMENT'));
+   if(expected.status==='hint') {
+    for(const key of ['title','clue','location','regionName'])assert.ok(content.innerHTML.includes(expected.hint[key]));
+    assert.equal((content.innerHTML.match(/class="ecological-hint-card"/g)||[]).length,1);
+    assert.ok(!content.innerHTML.includes(expected.hint.source));
+    assert.ok(!content.innerHTML.replace(/<[^>]*>/g,'').includes(expected.hint.speciesId));
+   } else {
+    assert.match(content.innerHTML,/野外研究任務完成/);
+    assert.match(content.innerHTML,/ALL FIVE SPECIES DISCOVERED/);
+    assert.doesNotMatch(content.innerHTML,/class="ecological-hint-card"/);
+   }
+   for(const animal of animals)assert.ok(!content.innerHTML.includes(animal.name));
+   assert.deepEqual([...storage],before);assert.equal(JSON.stringify(state.records),records);
+  };
+  for(const [region,method] of [[null,'x'],['mountain-forest','escape'],['lowland-forest','backdrop'],['alpine-stream','x']]) {
+   currentRegionId=region;checkOpen();
+   const html=content.innerHTML;
+   fire('pointerdown');fire('click');assert.equal(dialog.open,true);
+   if(method==='x')fire('click',{close:true});
+   if(method==='escape')fire('cancel');
+   if(method==='backdrop'){fire('pointerdown',{outside:true});fire('click',{outside:true});}
+   await settle();assert.equal(dialog.open,false);assert.equal(document.activeElement,toolbar[1]);
+   assert.equal(root.style.overflow,'');
+   checkOpen();assert.equal(content.innerHTML,html);fire('cancel');await settle();
+  }
+  currentRegionId='mountain-forest';model.selectAnimal('bear');
+  checkOpen();assert.match(content.innerHTML,/岩上的紅色線索/);fire('cancel');await settle();
+  animals.forEach(a=>model.selectAnimal(a.id));
+  checkOpen();fire('cancel');await settle();
+  assert.equal(reads,10);
+ } finally {
+  Object.assign(state,original);storage.clear();savedBefore.forEach(([key,value])=>storage.set(key,value));
+ }
+});
+
+test('achievement card is region independent, requires no visits, closes normally and resets to clues', async () => {
+ const model=await import('../scripts/state.js');
+ const {animals}=await import('../scripts/data/animals.js');
+ const {regions}=await import('../scripts/data/regions.js');
+ const {state}=model;
+ const original={selected:state.selected,discovered:new Set(state.discovered),visitedRegions:new Set(state.visitedRegions),records:state.records};
+ const savedBefore=[...storage];
+ try {
+  model.resetProgress();
+  animals.forEach(animal=>model.selectAnimal(animal.id));
+  assert.equal(state.visitedRegions.size,0);
+  let currentRegionId=null;
+  const {dialog,content,toolbar,root,fire}=await setup(true,{getCurrentRegionId:()=>currentRegionId});
+  const before=[...storage], records=JSON.stringify(state.records);
+  let completeHtml;
+  for(const [index,id] of [null,...Object.keys(regions)].entries()) {
+   currentRegionId=id;
+   toolbar[1].onclick();
+   assert.equal(dialog.open,true);assert.equal(dialog.dataset.mode,'hints');
+   assert.equal(root.style.overflow,'hidden');
+   for(const text of ['RESEARCH ACHIEVEMENT','野外研究任務完成',
+    '恭喜！你已發現全部五種臺灣野生動物。從山地森林到高山溪流，每一次觀察都是認識臺灣生態的重要一步。',
+    '前往物種研究圖鑑，回顧牠們的生態特徵、棲地與保育現況。','ALL FIVE SPECIES DISCOVERED'])assert.ok(content.innerHTML.includes(text));
+   assert.doesNotMatch(content.innerHTML,/ECOLOGICAL RESEARCH HINT|<button|<a\b|<audio/);
+   if(index===0)completeHtml=content.innerHTML;
+   else assert.equal(content.innerHTML,completeHtml);
+   if(index%3===0)fire('click',{close:true});
+   if(index%3===1)fire('cancel');
+   if(index%3===2){fire('pointerdown',{outside:true});fire('click',{outside:true});}
+   await settle();
+   assert.equal(dialog.open,false);assert.equal(root.style.overflow,'');
+   assert.equal(document.activeElement,toolbar[1]);
+   assert.deepEqual([...storage],before);assert.equal(JSON.stringify(state.records),records);
+  }
+  model.resetProgress();
+  currentRegionId=null;toolbar[1].onclick();
+  assert.match(content.innerHTML,/ECOLOGICAL RESEARCH HINT/);
+  assert.match(content.innerHTML,/胸前的月形印記/);
+  assert.doesNotMatch(content.innerHTML,/RESEARCH ACHIEVEMENT|野外研究任務完成|ALL FIVE/);
+  fire('cancel');await settle();
+ } finally {
+  Object.assign(state,original);storage.clear();savedBefore.forEach(([key,value])=>storage.set(key,value));
  }
 });

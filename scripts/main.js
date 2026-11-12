@@ -32,4 +32,4 @@ initDialogs(() => {
   renderPanel(null);
   renderArchive();
   refreshMarkers();
-});
+}, { getCurrentRegionId: () => refreshMarkers.getCurrentRegionId() });
