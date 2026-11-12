@@ -2,6 +2,11 @@ import { INTRO_KEY } from './project-storage.js';
 export { INTRO_KEY };
 let handledInMemory = false;
 
+// Storage is cleared by the existing full reset; only discard this module's cache.
+export function resetIntroMemory() {
+  handledInMemory = false;
+}
+
 export function hasHandledIntro() {
   if (handledInMemory) return true;
   try { return globalThis.localStorage?.getItem(INTRO_KEY) === '1'; }

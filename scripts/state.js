@@ -20,7 +20,7 @@ function read(key) {
 }
 
 const saved = read(PROGRESS_KEY);
-const profile = read(PROFILE_KEY);
+let profile = read(PROFILE_KEY);
 
 function todayInTaiwan() {
   const parts = new Intl.DateTimeFormat('en', {
@@ -173,7 +173,7 @@ function persistResearcher() {
 }
 
 export function setResearcher(value) {
-  if (resetInProgress) return { ok:false, message:'資料已清除，請重新整理網站。' };
+  if (resetInProgress) return { ok:false, message:'正在重置研究資料，請稍候再試。' };
   const result = validateResearcherName(value);
   if (!result.ok) return result;
   state.researcher = result.name;
@@ -230,26 +230,26 @@ export function resetProgress() {
 }
 
 
-export function resetAllResearchData({ reload = () => globalThis.location.reload() } = {}) {
-  if (resetInProgress) return { ok:false, message:'正在重新載入網站。' };
-  const result = removeProjectStorage();
-  if (!result.ok) { storageFailed = true; return result; }
-  // Stop pending map loads/name saves from recreating removed data before navigation.
+export function resetAllResearchData() {
+  if (resetInProgress) return { ok:false, message:'正在重置研究資料。' };
   resetInProgress = true;
+  const result = removeProjectStorage();
+  if (!result.ok) { resetInProgress = false; storageFailed = true; return result; }
   state.selected = null;
   state.discovered.clear();
   state.visitedRegions.clear();
   state.records = [];
   state.researcher = '未命名研究員';
-  identity.id = '';
-  identity.joinedDate = '';
+  // Reproduce a fresh boot in this same module instance. Discard the old profile
+  // snapshot too, so later name saves cannot resurrect removed custom settings.
+  profile = null;
+  identity.id = newResearcherId();
+  identity.joinedDate = todayInTaiwan();
+  storageFailed = false;
+  resetInProgress = false;
+  const persisted = persistResearcher();
   const event = {type:'exploration:changed', reason:'project-reset', animalId:null,
     summary:getResearcherSummary(state), notifications:[]};
   explorationListeners.forEach(listener=>listener(event));
-  try {
-    reload(); // A fresh module load regenerates identity and shows the original invitation.
-    return { ok:true };
-  } catch {
-    return { ok:true, needsReload:true, message:'研究資料已清除，請重新整理網站以建立新的研究員身分。' };
-  }
+  return { ok:true, persisted };
 }

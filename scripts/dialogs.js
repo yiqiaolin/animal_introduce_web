@@ -32,6 +32,7 @@ export function initDialogs(onReset, { getCurrentRegionId = () => null } = {}) {
   let previousGutter = '';
   let closingAnimation = null;
   let closing = false;
+  let pendingReset = null;
 
   function dismiss(openGuide = false) {
     if (!dialog.open || closing) return;
@@ -57,6 +58,8 @@ export function initDialogs(onReset, { getCurrentRegionId = () => null } = {}) {
     const wasInvitation = currentType === 'intro';
     const shouldOpenGuide = nextGuide;
     const trigger = returnFocus;
+    const reset = pendingReset;
+    pendingReset = null;
     closingAnimation?.cancel();
     closingAnimation = null;
     closing = false;
@@ -68,7 +71,12 @@ export function initDialogs(onReset, { getCurrentRegionId = () => null } = {}) {
     document.documentElement.style.overflow = previousOverflow;
     document.documentElement.style.scrollbarGutter = previousGutter;
     delete dialog.dataset.mode;
-    if (shouldOpenGuide) open('guide', guideTrigger);
+    content.inert = false;
+    if (reset) {
+      content.innerHTML = ''; // Discard closed profile/name drafts and nested modals.
+      if (trigger?.isConnected) trigger.focus({ preventScroll:true });
+      onReset(reset); // Only after the close event and session cleanup.
+    } else if (shouldOpenGuide) open('guide', guideTrigger);
     else if (trigger?.isConnected) trigger.focus({ preventScroll: true });
   }
 
@@ -92,7 +100,11 @@ export function initDialogs(onReset, { getCurrentRegionId = () => null } = {}) {
     session = new AbortController();
     const options = { signal: session.signal };
     if (type === 'records') bindDiscoveryLog(content);
-    if (type === 'profile') bindResearcherProfile(content, { signal: session.signal, onReset });
+    if (type === 'profile') bindResearcherProfile(content, { signal: session.signal, onReset:reset => {
+      pendingReset = reset;
+      content.inert = true; // No late edits while the existing close animation runs.
+      dismiss();
+    } });
     let startedOutside = false;
     dialog.addEventListener('pointerdown', event => { startedOutside = outside(event); }, options);
     dialog.addEventListener('click', event => {
@@ -133,5 +145,9 @@ export function initDialogs(onReset, { getCurrentRegionId = () => null } = {}) {
   document.querySelectorAll('[data-dialog]').forEach(button => {
     button.onclick = () => open(button.dataset.dialog, button);
   });
-  if (!hasHandledIntro()) open('intro', guideTrigger);
+  function showInvitationIfNeeded() {
+    if (!hasHandledIntro()) open('intro', guideTrigger);
+  }
+  showInvitationIfNeeded();
+  return { showInvitationIfNeeded };
 }

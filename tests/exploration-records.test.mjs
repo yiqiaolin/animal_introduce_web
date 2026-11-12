@@ -104,11 +104,11 @@ test('both reset paths clear mixed events while simple reset preserves identity'
   assert.equal(model.getResearcherProfile().id, identity);
   model.visitRegion('lowland-forest');
   model.selectAnimal('cat');
-  let reloaded = false;
-  assert.equal(model.resetAllResearchData({ reload:()=>{reloaded=true;} }).ok, true);
-  assert.equal(reloaded, true);
+  assert.equal(model.resetAllResearchData().ok, true);
   assert.equal(saved.has(key), false);
   assert.equal(model.state.records.length, 0);
+  assert.match(model.getResearcherProfile().id, /^TW-[A-Z0-9]{4}$/);
+  assert.equal(model.state.researcher, '未命名研究員');
   const fresh = await reload();
   assert.equal(fresh.state.records.length, 0);
   assert.equal(fresh.state.visitedRegions.size, 0);

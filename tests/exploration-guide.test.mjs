@@ -11,7 +11,7 @@ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{
 let revision=0;
 
 class Element extends EventTarget {
-  constructor(){super();this.style={};this.dataset={};this.isConnected=true;this.disabled=false;this._html='';this.children=new Map();this.open=false;}
+  constructor(){super();this.style={setProperty(key,value){this[key]=value;},removeProperty(key){delete this[key];}};this.dataset={};this.isConnected=true;this.disabled=false;this._html='';this.children=new Map();this.open=false;}
   addEventListener(type,callback,options){if(options?.signal)setMaxListeners(0,options.signal);super.addEventListener(type,callback,options);}
   setAttribute(key,value){(this.attributes??={})[key]=value;}
   removeAttribute(key){delete this.attributes?.[key];}
@@ -24,7 +24,7 @@ class Element extends EventTarget {
   set innerHTML(html){this._html=html;this.children.clear();}
   get innerHTML(){return this._html;}
   querySelector(selector){if(!this.children.has(selector))this.children.set(selector,new Element());return this.children.get(selector);}
-  querySelectorAll(selector){if(selector==='[data-badge]')return [];return [this.querySelector('.close-dialog'),...(this.includeSummary&&selector.includes('summary')?[this.querySelector('summary')]:[]),this.querySelector('action')];}
+  querySelectorAll(selector){if(selector==='[data-startup-panel]')return this.panels||[];if(selector==='[data-badge]')return [];return [this.querySelector('.close-dialog'),...(this.includeSummary&&selector.includes('summary')?[this.querySelector('summary')]:[]),this.querySelector('action')];}
   getClientRects(){return [{}];}
   getBoundingClientRect(){return {left:100,right:660,top:100,bottom:700};}
   focus(){document.activeElement=this;}
@@ -34,12 +34,13 @@ class Element extends EventTarget {
 }
 
 function createDom(){
- const dialog=new Element(),content=new Element();
+ const dialog=new Element(),content=new Element(),startup=new Element();
+ startup.panels=['initialization','identification','assignment'].map(id=>{const panel=new Element();panel.dataset.startupPanel=id;return panel;});
  const toolbar=['guide','hints','records','profile'].map(type=>{const b=new Element();b.dataset.dialog=type;return b;});
  const root={style:{overflow:'',scrollbarGutter:''}};
  globalThis.document={
   activeElement:null,documentElement:root,
-  querySelector:s=>s==='#utility-dialog'?dialog:s==='#dialog-content'?content:toolbar[0],
+  querySelector:s=>s==='#utility-dialog'?dialog:s==='#dialog-content'?content:s==='#research-startup-dialog'?startup:s==='dialog[open]'?(startup.open?startup:dialog.open?dialog:null):toolbar[0],
   querySelectorAll:()=>toolbar
  };
  function fire(type,{outside=false,action=null,close=false,key=null,shiftKey=false}={}){
@@ -51,10 +52,10 @@ function createDom(){
   dialog.dispatchEvent(event);
   return event;
  }
- return {dialog,content,toolbar,root,fire};
+ return {dialog,content,toolbar,root,fire,startup};
 }
 const settle=()=>new Promise(resolve=>queueMicrotask(resolve));
-async function setup(seen=false, options={}){
+async function setup(seen=false, options={}, defer=false){
  storage.delete('wildlifeExplorer_introSeen');if(seen)storage.set('wildlifeExplorer_introSeen','1');
  const dom=createDom();
  // A new guide module instance simulates a fresh page and resets only its in-memory flag.
@@ -65,8 +66,8 @@ async function setup(seen=false, options={}){
   .replace("'./researcher-profile.js'",JSON.stringify(new URL('../scripts/researcher-profile.js',import.meta.url).href))
   .replace("'./exploration-guide.js'",JSON.stringify(guideUrl.href));
  const {initDialogs}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
- initDialogs(()=>{}, options);
- return dom;
+ if(!defer)initDialogs(()=>{}, options);
+ return {...dom,initDialogs:()=>initDialogs(()=>{},options)};
 }
 
 test('first visit invitation routes to complete guide; guide close restores focus and scroll',async()=>{
@@ -343,5 +344,42 @@ test('achievement card is region independent, requires no visits, closes normall
   fire('cancel');await settle();
  } finally {
   Object.assign(state,original);storage.clear();savedBefore.forEach(([key,value])=>storage.set(key,value));
+ }
+});
+
+test('startup completes or skips before the real invitation and initializes dialogs only once', async()=>{
+ const {initResearchStartup}=await import('../scripts/research-startup.js');
+ for(const method of ['complete','skip','escape','external-close']) {
+  const {startup,dialog,root,fire,initDialogs}=await setup(false,{},true);
+  const pending=new Map();let next=0,ready=0;
+  const control=initResearchStartup({
+   onReady:()=>{ready++;assert.equal(startup.open,false);initDialogs();},
+   returningUser:()=>false,
+   storage:{getItem:()=>null,setItem(){}},
+   schedule:(callback,delay)=>{const id=++next;pending.set(id,{callback,delay});return id;},
+   unschedule:id=>pending.delete(id)
+  });
+  control.start();
+  assert.equal(startup.open,true);assert.equal(dialog.open,false);
+  assert.equal(root.style.overflow,'hidden');
+  assert.equal(startup.querySelector('[data-startup-stage]').textContent,'研究系統初始化');
+  if(method==='complete') {
+   for(let i=0;i<3;i++) {
+    const [id,task]=pending.entries().next().value;pending.delete(id);task.callback();
+   }
+  }
+  if(method==='skip')startup.querySelector('[data-startup-skip]').dispatchEvent(new Event('click'));
+  if(method==='escape')startup.dispatchEvent(new Event('cancel',{cancelable:true}));
+  if(method==='external-close')startup.close();
+  await settle();
+  assert.equal(startup.open,false);assert.equal(dialog.open,true);
+  assert.equal(dialog.dataset.mode,'intro');assert.equal(ready,1);assert.equal(pending.size,0);
+  control.complete();control.skip();assert.equal(ready,1);
+  assert.equal(control.replay(),false); // Invitation must be dismissed first.
+  fire('click',{action:'explore'});await settle();assert.equal(dialog.open,false);
+  assert.equal(root.style.overflow,'');
+  control.replay();assert.equal(startup.open,true);control.skip();
+  assert.equal(ready,1);assert.equal(dialog.open,false);assert.equal(root.style.overflow,'');
+  control.dispose();
  }
 });

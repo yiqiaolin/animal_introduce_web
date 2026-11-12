@@ -55,6 +55,44 @@
 </section>
 </main>
 
+<dialog id="research-startup-dialog" aria-labelledby="research-startup-title" aria-modal="true">
+<h2 id="research-startup-title" class="startup-sr-only">研究系統啟動</h2>
+<button type="button" class="startup-skip" data-startup-skip autofocus>略過開場 <span aria-hidden="true">↗</span></button>
+<p class="startup-sr-only" data-startup-stage role="status" aria-live="polite" aria-atomic="true"></p>
+<div class="startup-shell">
+  <div class="startup-stages">
+    <section class="startup-stage" data-startup-panel="initialization" data-active="false" aria-hidden="true" inert>
+      <svg class="startup-system-icon" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true" focusable="false">
+        <circle cx="40" cy="40" r="31"/><path d="M22 55h36 M40 55V29 M40 43C22 42 22 27 22 27c15 0 18 10 18 16Z M40 37c0-15 18-17 18-17 0 16-9 19-18 17Z"/>
+        <path d="M7 20v-9h9 M64 11h9v9 M7 60v9h9 M64 69h9v-9"/>
+      </svg>
+      <p class="startup-eyebrow">INITIALIZING RESEARCH SYSTEM</p>
+      <h3>臺灣野生動物探索計畫</h3>
+      <p class="startup-description">研究系統啟動中，正在準備生態觀察環境。</p>
+      <div class="startup-progress" role="progressbar" aria-label="研究系統初始化" aria-valuetext="初始化中"><span></span></div>
+      <p class="startup-system-status">SYSTEM INITIALIZATION / 生態研究系統連線中</p>
+    </section>
+    <section class="startup-stage" data-startup-panel="identification" data-active="false" aria-hidden="true" inert>
+      <p class="startup-eyebrow">RESEARCHER IDENTIFIED</p>
+      <h3>研究員身分識別</h3>
+      <div class="startup-identity-card">
+        <div class="startup-identity-main">
+          <svg class="startup-avatar" viewBox="0 0 80 96" aria-hidden="true" focusable="false"><circle cx="40" cy="27" r="17"/><path d="M9 87v-9c0-21 14-31 31-31s31 10 31 31v9Z"/></svg>
+          <div class="startup-identity-info"><span class="startup-identity-label">RESEARCH PERSONNEL</span><strong data-startup-name>未命名研究員</strong><p>野生動物調查研究員</p></div>
+        </div>
+        <div class="startup-verification"><p><span aria-hidden="true">✓</span> 身分驗證完成</p><span>IDENTITY VERIFIED / ACCESS GRANTED</span></div>
+      </div>
+    </section>
+    <section class="startup-stage" data-startup-panel="assignment" data-active="false" aria-hidden="true" inert>
+      <div class="startup-mission-check" aria-hidden="true">✓</div>
+      <p class="startup-eyebrow">MISSION BRIEFING</p>
+      <h3>野生動物調查任務已啟動</h3>
+      <p class="startup-description">探索臺灣不同生態區域，尋找野生動物，建立你的物種研究圖鑑。</p>
+      <p class="startup-mission-ready"><span aria-hidden="true">✓</span> 研究任務準備完成</p>
+    </section>
+  </div>
+</div>
+</dialog>
 <dialog id="utility-dialog" aria-labelledby="utility-dialog-title" aria-modal="true">
 <button type="button" class="close-dialog" aria-label="關閉">×</button>
 <div id="dialog-content"></div></dialog>

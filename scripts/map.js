@@ -23,10 +23,12 @@ export function initMap(onSelect) {
   let drag = null;
   let savedOverview = null;
   let switching = false;
+  let loadGeneration = 0;
   let cameraWidth = 0;
   let cameraHeight = 0;
   let imageWidth = 1024;
   let imageHeight = 1536;
+  const overviewSize = { width:image.width || imageWidth, height:image.height || imageHeight };
   const settings = () => activeRegion || overview;
   const debugEnabled = new URLSearchParams(globalThis.location?.search || '').get('debugMap') === '1';
   const editor = debugEnabled ? createMapEditor({
@@ -93,6 +95,25 @@ export function initMap(onSelect) {
     viewport.classList.remove('dragging');
   }
 
+  function updateMapChrome(region) {
+    back.hidden = !region;
+    viewport.classList.toggle('regional-map', !!region);
+    viewport.setAttribute('aria-label', `${region ? region.name : '台灣總覽'}，使用滾輪縮放或拖曳移動`);
+    document.querySelector('.map-footer span').textContent = region ? `⌖ ${region.name} / 區域探索` : '⌖ TAIWAN / 示意探索區';
+    document.querySelector('.map-panel h1').textContent = region ? region.name : '島嶼探索';
+    hint.textContent = region ? '放大至 180%，在研究區中尋找動物' : '滾動放大地圖，尋找島嶼上的生命蹤跡';
+    editor?.setRegion(region);
+    renderMarkers();
+  }
+
+  function cancelPendingSwitch() {
+    loadGeneration++;
+    switching = false;
+    stopDragging();
+    viewport.setAttribute('aria-busy', 'false');
+    world.classList.remove('map-switching');
+  }
+
   // Load before switching; a missing/corrupt asset leaves the previous map usable.
   function loadImage(src) {
     return new Promise((resolve, reject) => {
@@ -106,9 +127,11 @@ export function initMap(onSelect) {
   async function switchMap(region) {
     if (switching) return;
     switching = true;
+    const token = ++loadGeneration;
     viewport.setAttribute('aria-busy', 'true');
     try {
       const asset = await loadImage(region ? region.image : overviewImage);
+      if (token !== loadGeneration) return;
       stopDragging();
       if (region) savedOverview = { scale, x, y };
       const previousRegionId = activeRegion?.id;
@@ -120,14 +143,7 @@ export function initMap(onSelect) {
       image.width = imageWidth;
       image.height = imageHeight;
       ({ scale, x, y } = region ? { scale: 1, x: 0, y: 0 } : savedOverview);
-      back.hidden = !region;
-      viewport.classList.toggle('regional-map', !!region);
-      viewport.setAttribute('aria-label', `${region ? region.name : '台灣總覽'}，使用滾輪縮放或拖曳移動`);
-      document.querySelector('.map-footer span').textContent = region ? `⌖ ${region.name} / 區域探索` : '⌖ TAIWAN / 示意探索區';
-      document.querySelector('.map-panel h1').textContent = region ? region.name : '島嶼探索';
-      hint.textContent = region ? '放大至 180%，在研究區中尋找動物' : '滾動放大地圖，尋找島嶼上的生命蹤跡';
-      editor?.setRegion(region);
-      renderMarkers();
+      updateMapChrome(region);
       // Don't interpolate between unrelated coordinate systems.
       world.classList.add('map-switching');
       draw();
@@ -136,11 +152,14 @@ export function initMap(onSelect) {
       if (region) back.focus({ preventScroll: true });
       else markers.querySelector(`[data-region="${previousRegionId}"]`)?.focus({ preventScroll: true });
     } catch {
+      if (token !== loadGeneration) return;
       hint.textContent = '地圖載入失敗，請檢查素材後重試';
       hint.classList.remove('hidden');
     } finally {
-      switching = false;
-      viewport.setAttribute('aria-busy', 'false');
+      if (token === loadGeneration) {
+        switching = false;
+        viewport.setAttribute('aria-busy', 'false');
+      }
     }
   }
 
@@ -214,5 +233,21 @@ export function initMap(onSelect) {
   draw();
   // Read the live map instance; expose no setter or duplicate persisted state.
   refreshMarkers.getCurrentRegionId = () => activeRegion?.id ?? null;
+  refreshMarkers.cancelPendingSwitch = cancelPendingSwitch;
+  refreshMarkers.resetView = () => {
+    cancelPendingSwitch();
+    activeRegion = savedOverview = null;
+    scale = 1;
+    x = y = 0;
+    imageWidth = overviewSize.width;
+    imageHeight = overviewSize.height;
+    image.src = overviewImage;
+    image.alt = '台灣生態地圖插畫';
+    image.width = imageWidth;
+    image.height = imageHeight;
+    editor?.reset();
+    updateMapChrome(null);
+    draw();
+  };
   return refreshMarkers;
 }

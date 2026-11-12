@@ -89,7 +89,7 @@ function bindRestartConfirmation(root, { signal, onReset }) {
     confirm.disabled = true;
     resetProgress();
     confirmation.close();
-    onReset();
+    onReset({ kind:'progress' });
   }, options);
   signal.addEventListener('abort', () => {
     if (confirmation.open) confirmation.close();
@@ -140,7 +140,7 @@ export function bindResearcherDataManagement(root, { signal, onReset, resetAll =
     if (!signal.aborted && !busy) trigger.focus({ preventScroll:true });
   }, options);
   confirm.addEventListener('click', () => {
-    if (busy) return;
+    if (busy || !confirmation.open) return;
     busy = true;
     cancel.disabled = confirm.disabled = true;
     const result = resetAll();
@@ -149,7 +149,10 @@ export function bindResearcherDataManagement(root, { signal, onReset, resetAll =
       busy = false;
       cancel.disabled = confirm.disabled = false;
       cancel.focus({ preventScroll:true });
-    } else if (result.needsReload) error.textContent = result.message;
+    } else {
+      confirmation.close();
+      onReset({ kind:'all' });
+    }
   }, options);
   signal.addEventListener('abort', () => {
     if (confirmation.open) confirmation.close();

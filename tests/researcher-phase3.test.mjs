@@ -186,22 +186,22 @@ test('full reset clears only project data, cancels old outcomes and boots new id
   setTimer:callback=>{timers.set(++timerId,callback);return timerId;},clearTimer:id=>timers.delete(id)});
  queue.enqueue([{title:'old badge'},{title:'old promotion'}]);
  model.subscribeExploration(event=>{if(event.reason==='project-reset')queue.clear();});
- let reloads=0;
- assert.equal(model.resetAllResearchData({reload:()=>reloads++}).ok,true);
- assert.equal(reloads,1);assert.equal(timers.size,0);assert.equal(visible,false);
- for(const key of PROJECT_STORAGE_KEYS)assert.equal(values.has(key),false);
+ assert.equal(model.resetAllResearchData().ok,true);
+ assert.equal(timers.size,0);assert.equal(visible,false);
+ assert.equal(values.has(PROGRESS_KEY),false);assert.equal(values.has(INTRO_KEY),false);
+ assert.equal(JSON.parse(values.get(PROFILE_KEY)).name,'未命名研究員');
  assert.equal(values.get('another-app.setting'),'keep');assert.equal(values.get('twe.unrelated.v1'),'also keep');
  assert.equal(model.state.discovered.size,0);assert.equal(model.state.visitedRegions.size,0);assert.equal(model.state.records.length,0);
- assert.equal(model.visitRegion(regionIds[0]),false);assert.equal(model.selectAnimal('bear'),false);
- assert.equal(model.setResearcher('late save').ok,false);model.persistProgress();
- for(const key of PROJECT_STORAGE_KEYS)assert.equal(values.has(key),false);
- assert.equal(model.resetAllResearchData({reload:()=>reloads++}).ok,false);assert.equal(reloads,1);
- // Fresh module instances model a real page reload (including module-local flags).
+ const liveIdentity=model.getResearcherProfile();
+ assert.match(liveIdentity.id,/^TW-[A-Z0-9]{4}$/);assert.notEqual(liveIdentity.id,'TW-OLD1');
+ oldGuide.resetIntroMemory();assert.equal(oldGuide.hasHandledIntro(),false);
+ // Fresh module instances verify persistence, not a navigation-based reset.
  const freshUrl=new URL(`../scripts/state.js?boot=${revision++}`,import.meta.url);
  const fresh=await import(freshUrl),events=[];fresh.subscribeExploration(event=>events.push(event));
  const identity=fresh.getResearcherProfile();
  assert.equal(identity.name,'未命名研究員');assert.match(identity.id,/^TW-[A-Z0-9]{4}$/);assert.notEqual(identity.id,'TW-OLD1');
  assert.notEqual(identity.joinedDate,'2000-01-01');
+ assert.deepEqual(identity,liveIdentity);
  assert.equal(fresh.state.discovered.size,0);assert.equal(fresh.state.records.length,0);assert.equal(fresh.state.visitedRegions.size,0);
  assert.equal(getResearcherSummary(fresh.state).badges.some(b=>b.unlocked),false);assert.equal(events.length,0);
  const guideUrl=new URL(`../scripts/exploration-guide.js?boot=${revision++}`,import.meta.url);
@@ -222,15 +222,21 @@ test('full reset clears only project data, cancels old outcomes and boots new id
  fire(dialog,'cancel');await settle();
 });
 
-test('failed reset keeps memory/data intact; successful deletion with failed navigation requests manual reload',async()=>{
+test('failed deletion keeps memory/data intact; identity write failure still leaves a usable fresh session',async()=>{
  seed();const model=await loadState();
- const before=values.get(PROGRESS_KEY);let reloads=0;
+ const before=values.get(PROGRESS_KEY);
  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{...local,removeItem(){throw Error('denied');}}});
- const failure=model.resetAllResearchData({reload:()=>reloads++});
- assert.equal(failure.ok,false);assert.equal(reloads,0);assert.equal(model.state.discovered.size,5);
+ const failure=model.resetAllResearchData();
+ assert.equal(failure.ok,false);assert.equal(model.state.discovered.size,5);
  assert.equal(values.get(PROGRESS_KEY),before);
+ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{...local,setItem(){throw Error('write denied');}}});
+ const success=model.resetAllResearchData();
+ assert.equal(success.ok,true);assert.equal(success.persisted,false);
+ assert.equal(model.state.discovered.size,0);assert.equal(model.state.researcher,'未命名研究員');
+ assert.match(model.getResearcherProfile().id,/^TW-[A-Z0-9]{4}$/);
+ assert.equal(model.hasStorageError(),true);
  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:local});
- const success=model.resetAllResearchData({reload:()=>{throw Error('navigation blocked');}});
- assert.equal(success.ok,true);assert.equal(success.needsReload,true);
- assert.match(success.message,/重新整理/);
+ assert.equal(model.setResearcher('可繼續研究').ok,true);
+ assert.equal(model.visitRegion(regionIds[0]),true);assert.equal(model.selectAnimal('bear'),true);
+ assert.equal(model.resetAllResearchData().ok,true);
 });

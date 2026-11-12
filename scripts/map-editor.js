@@ -84,6 +84,16 @@ export function createMapEditor({ viewport, camera, artwork, onChange, onVisibil
   });
 
   return {
+    reset() {
+      edits.clear();
+      region = selectedId = pointerStart = null;
+      dragged = false;
+      visible.checked = true;
+      panel.hidden = true;
+      output.textContent = '';
+      code.value = '';
+      status.textContent = '選擇動物後點擊地圖；拖曳不會改座標。';
+    },
     positions,
     forceVisible: () => !!region && visible.checked,
     setRegion(nextRegion) {

@@ -3,6 +3,9 @@
 export const PROFILE_KEY = 'twe.researcher.v1';
 export const PROGRESS_KEY = 'twe.exploration.v1';
 export const INTRO_KEY = 'wildlifeExplorer_introSeen';
+export const STARTUP_KEY = 'twe.startup.v1';
+// Both reset scopes deliberately retain STARTUP_KEY. Explicit replay() ignores
+// the flag; there is no need to expand the original deletion scope for replay.
 export const PROJECT_STORAGE_KEYS = Object.freeze([PROFILE_KEY, PROGRESS_KEY, INTRO_KEY]);
 
 export function removeProjectStorage(storage) {

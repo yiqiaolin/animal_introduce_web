@@ -100,7 +100,7 @@ test('full exploration persists completion with exactly eight events; both reset
   Object.keys(regions).forEach(id=>restored.model.visitRegion(id));
   animals.forEach(a=>restored.model.selectAnimal(a.id));
   assert.match(restored.view.renderDiscoveryLog(),/EXPLORATION COMPLETE/);
-  assert.equal(restored.model.resetAllResearchData({reload:()=>{}}).ok,true);
+  assert.equal(restored.model.resetAllResearchData().ok,true);
   assert.doesNotMatch(restored.view.renderDiscoveryLog(),/EXPLORATION COMPLETE/);
   const fresh=await restoredLog();
   assert.doesNotMatch(fresh.view.renderDiscoveryLog(),/EXPLORATION COMPLETE/);
