@@ -92,7 +92,8 @@ test('data management is a closed native disclosure; cancelling confirmation cha
  const markup=renderResearcherDataManagement();
  assert.match(markup,/<details class="researcher-data-management">/);
  assert.match(markup,/<summary>資料管理/);assert.match(markup,/無法復原/);
- assert.equal((markup.match(/<dialog /g)||[]).length,1);
+ assert.equal((markup.match(/<dialog /g)||[]).length,2);
+ assert.doesNotMatch(markup,/researcher-reset-confirm/);
  const root=new Element(),controller=new AbortController();let resets=0;
  bindResearcherDataManagement(root,{signal:controller.signal,onReset(){},resetAll:()=>{resets++;return {ok:true};}});
  const get=s=>root.querySelector(s),panel=get('.researcher-data-management');
@@ -109,6 +110,61 @@ test('data management is a closed native disclosure; cancelling confirmation cha
  fire(get('[data-profile-reset-all]'),'click');fire(get('[data-full-reset-confirm]'),'click');fire(get('[data-full-reset-confirm]'),'click');
  assert.equal(resets,1);assert.equal(get('[data-full-reset-confirm]').disabled,true);
  controller.abort();
+});
+
+test('restart modal cancels safely, confirms once, preserves identity/intro and cleans up on abort', async()=>{
+ const model=await import('../scripts/state.js');
+ const {renderResearcherDataManagement,bindResearcherDataManagement}=await import('../scripts/researcher-data-management.js');
+ values.clear();model.resetProgress();model.setResearcher('研究員測試');values.set(INTRO_KEY,'1');
+ values.set('other-site.setting','keep');
+ species.forEach(id=>model.selectAnimal(id));regionIds.forEach(id=>model.visitRegion(id));
+ const markup=renderResearcherDataManagement();
+ assert.match(markup,/確認重新開始探索？/);
+ assert.match(markup,/稱號與徽章會隨探索進度重新計算/);
+ assert.match(markup,/保留研究員名稱、編號、加入日期、首次任務通知設定及目前地圖視角/);
+ assert.doesNotMatch(markup,/researcher-reset-confirm/);
+ const root=new Element(),controller=new AbortController();let resets=0,fullResets=0;
+ bindResearcherDataManagement(root,{signal:controller.signal,onReset:()=>resets++,resetAll:()=>{fullResets++;return {ok:true};}});
+ const get=s=>root.querySelector(s),dialog=get('.researcher-restart-dialog'),trigger=get('[data-profile-restart]');
+ const before=[...values], records=JSON.stringify(model.state.records);
+ const profile=values.get(PROFILE_KEY);
+ const point=(type,outside)=>{
+  const event=new Event(type,{cancelable:true});
+  Object.defineProperties(event,{clientX:{value:outside?50:200},clientY:{value:outside?50:200}});
+  dialog.dispatchEvent(event);return event;
+ };
+ // A hidden confirmation button cannot reset anything.
+ fire(get('[data-profile-confirm-reset]'),'click');assert.equal(resets,0);
+ for(const method of ['cancel','escape','backdrop']) {
+  const showCount=dialog.showCount;
+  fire(trigger,'click');fire(trigger,'click');
+  assert.equal(dialog.open,true);assert.equal(dialog.showCount,showCount+1);
+  assert.equal(get('[data-profile-cancel-reset]').focused,true);
+  point('pointerdown',false);point('click',false);assert.equal(dialog.open,true);
+  point('pointerdown',false);point('click',true);assert.equal(dialog.open,true);
+  if(method==='cancel')fire(get('[data-profile-cancel-reset]'),'click');
+  if(method==='escape'){
+   const event=new Event('cancel',{cancelable:true});dialog.dispatchEvent(event);assert.equal(event.defaultPrevented,true);
+  }
+  if(method==='backdrop'){point('pointerdown',true);point('click',true);}
+  await settle();
+  assert.equal(dialog.open,false);assert.equal(trigger.focused,true);
+  assert.deepEqual([...values],before);assert.equal(JSON.stringify(model.state.records),records);
+  assert.equal(resets,0);assert.equal(fullResets,0);
+ }
+ fire(trigger,'click');fire(get('[data-profile-confirm-reset]'),'click');fire(get('[data-profile-confirm-reset]'),'click');
+ assert.equal(resets,1);assert.equal(dialog.open,false);await settle();
+ assert.equal(model.state.selected,null);assert.equal(model.state.discovered.size,0);
+ assert.equal(model.state.visitedRegions.size,0);assert.equal(model.state.records.length,0);
+ assert.equal(values.get(PROFILE_KEY),profile);assert.equal(values.get(INTRO_KEY),'1');
+ assert.equal(values.get('other-site.setting'),'keep');assert.equal(fullResets,0);
+ assert.equal(getResearcherSummary(model.state).title,'見習研究員');
+ assert.ok(getResearcherSummary(model.state).badges.every(b=>!b.unlocked));
+ const after=[...values];
+ fire(trigger,'click');assert.equal(dialog.open,true);
+ controller.abort();await settle();assert.equal(dialog.open,false);
+ fire(get('[data-profile-confirm-reset]'),'click');assert.equal(resets,1);
+ assert.deepEqual([...values],after);
 });
 
 test('storage removal uses exact owned keys and rolls back a failed removal instead of reloading',()=>{

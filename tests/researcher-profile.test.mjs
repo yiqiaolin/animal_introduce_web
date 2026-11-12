@@ -64,6 +64,7 @@ class Element extends EventTarget {
  getAttribute(k){return this.attributes[k]??null;}
  setAttribute(k,v){this.attributes[k]=v;} removeAttribute(k){delete this.attributes[k];}
  focus(){this.focused=true;} select(){this.selected=true;}
+ showModal(){this.open=true;} close(){this.open=false;queueMicrotask(()=>this.dispatchEvent(new Event('close')));}
 }
 const fire=(element,type)=>element.dispatchEvent(new Event(type,{cancelable:true}));
 

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { animals } from '../scripts/data/animals.js';
 import { photos } from '../scripts/data/photos.js';
+import { regions } from '../scripts/data/regions.js';
 
 const saved = new Map();
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
@@ -57,13 +58,30 @@ test('five user-photo paths preserve IDs and leave attribution unassigned', () =
   for(const animal of animals){
     const photo = animal.photo;
     assert.equal(photo,photos[animal.id]);
-    const filename = { bear: 'bear.png', monkey: 'monkey.jpeg' }[animal.id] || `${animal.id}.jpg`;
+    const filename = { bear: 'bear.png', monkey: 'monkey.jpeg', magpie: 'magpie.png' }[animal.id] || `${animal.id}.jpg`;
     assert.equal(photo.src,`assets/animals/photos/${filename}`);
     for(const key of ['author','source','license','licenseUrl','modifications'])assert.equal(photo[key],'');
-    assert.equal(animal.diet,null);
+    assert.equal(typeof animal.diet,'string');
     assert.equal(typeof animal.introduction,'string');
     assert.equal(typeof animal.trivia,'string');
   }
+});
+
+test('all archive research fields are complete, sourced and separate habitat from behavior', () => {
+  for (const animal of animals) {
+    for (const key of ['name','scientific','category','habitat','diet','habit','conservation','introduction','trivia']) {
+      assert.equal(typeof animal[key], 'string', `${animal.id}.${key}`);
+      assert.ok(animal[key].trim());
+      assert.doesNotMatch(animal[key], /待補|待校核|暫定|示範/);
+    }
+    assert.notEqual(animal.habitat,animal.habit);
+    assert.ok(animal.diet.length <= 40 && animal.habit.length <= 40);
+    assert.ok(animal.dietSource.startsWith('https://'));
+    assert.ok(animal.habitSource.startsWith('https://'));
+  }
+  assert.match(animals.find(a=>a.id==='bear').habit,/獨居/);
+  assert.match(animals.find(a=>a.id==='salmon').habit,/產卵/);
+  assert.match(animals.find(a=>a.id==='monkey').habit,/日間活動/);
 });
 
 test('archive hides locked species, retains numbered order and enforces one open card', async () => {
@@ -90,7 +108,7 @@ test('archive hides locked species, retains numbered order and enforces one open
   renderArchive();
   assert.deepEqual([...list.html.matchAll(/NO\. (\d{3})/g)].map(m=>m[1]).filter((v,i,a)=>i===0||v!==a[i-1]),['001','002','003','004','005']);
   assert.deepEqual(details.map(d=>d.id),['bear','magpie']);
-  assert.ok(list.html.includes('食性')&&list.html.includes('生態小知識')&&list.html.includes('待補'));
+  assert.ok(list.html.includes('食性')&&list.html.includes('生態小知識'));
   assert.equal(nodes.get('#progress-text').textContent,'02 / 05');
   details[0].open=true;
   details[1].querySelector().click();details[1].open=true; // Simulate native summary default toggle.
@@ -98,6 +116,16 @@ test('archive hides locked species, retains numbered order and enforces one open
   details[1].querySelector().click();details[1].open=false;
   assert.equal(details.filter(d=>d.open).length,0);
   assert.equal(list.scrollTop,17);
+  animals.forEach(animal=>selectAnimal(animal.id));
+  renderArchive();
+  assert.equal(details.length,5);
+  assert.doesNotMatch(list.html,/待補|待校核|暫定|既有示範資料|demo-tag|PHOTO ASSET PENDING|真實照片待提供/);
+  for (const animal of animals) {
+    for (const key of ['habitat','diet','habit','conservation','introduction','trivia'])assert.ok(list.html.includes(animal[key]));
+    const region=Object.values(regions).find(r=>r.animals.some(a=>a.id===animal.id));
+    assert.ok(list.html.includes(`${animal.category} ｜ ${region.name}`));
+    assert.ok(list.html.includes(`發現地區 ｜ ${region.name}`));
+  }
   state.discovered.clear();
 });
 
@@ -106,7 +134,7 @@ test('photo slots show placeholders on missing/error and reveal valid/cached use
   const {renderAnimalPhoto,bindAnimalPhotos} = await import('../scripts/research-panel.js');
   const html=renderAnimalPhoto(animals[0]);
   assert.match(html,/bear\.png/);
-  assert.match(html,/真實照片待提供/);
+  assert.match(html,/影像暫時無法顯示/);
   assert.match(html,/<img[^>]+hidden/);
   assert.ok(!html.includes('<figcaption>'));
   const events={};

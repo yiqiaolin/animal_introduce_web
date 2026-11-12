@@ -1399,9 +1399,11 @@ dialog h2 {
 .researcher-full-reset { margin-top:20px; padding-top:6px; border-top:1px solid var(--line); }
 .researcher-danger { color:#e3c1b0; border-color:#88695c; background:#352e2a; }
 .researcher-danger:hover { background:#4b3830; }
-.researcher-full-reset-dialog { width:440px; max-width:90vw; max-height:80dvh; padding:28px; overscroll-behavior:contain; }
-.researcher-full-reset-dialog h3 { margin:10px 0 16px; font-size:20px; font-weight:400; }
-.researcher-full-reset-dialog p { font-size:12px; line-height:1.9; color:var(--muted); }
+.researcher-full-reset-dialog, .researcher-restart-dialog { width:440px; max-width:90vw; max-height:80dvh; padding:28px; overscroll-behavior:contain; }
+.researcher-full-reset-dialog h3, .researcher-restart-dialog h3 { margin:10px 0 16px; font-size:20px; font-weight:400; }
+.researcher-full-reset-dialog p, .researcher-restart-dialog p { font-size:12px; line-height:1.9; color:var(--muted); }
+/* Only the top confirmation supplies the backdrop; the profile stays inert. */
+#utility-dialog:has(.researcher-restart-dialog[open])::backdrop { background:transparent; backdrop-filter:none; }
 .researcher-full-reset-dialog [data-full-reset-error] { color:#e3bba7; }
 .researcher-reset-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-top:20px; }
 .researcher-reset-actions button:disabled { opacity:.5; cursor:wait; }

@@ -1,7 +1,7 @@
 // Shared by the research panel and the expanded archive card.
 export function photoPlaceholder(animal, className = '') {
   return `<div class="photo-placeholder ${className}">
-    <span>⌑</span><small>${animal.name} · 真實照片待提供</small><em>PHOTO ASSET PENDING</em>
+    <span>⌑</span><small>${animal.name} · 影像暫時無法顯示</small><em>IMAGE UNAVAILABLE</em>
   </div>`;
 }
 
@@ -22,7 +22,7 @@ export function renderAnimalPhoto(animal, thumbnail = false) {
   const alt = escapePhotoText(photo.description || animal.name + '真實照片');
   const image = `<img src="${escapePhotoText(photo.src)}" alt="${alt}" hidden>`;
   if (thumbnail) return `<span class="archive-thumbnail" data-photo-slot>
-    <span class="thumbnail-placeholder" data-photo-placeholder aria-label="照片待提供">⌑</span>${image}
+    <span class="thumbnail-placeholder" data-photo-placeholder aria-label="影像暫時無法顯示">⌑</span>${image}
   </span>`;
   const credits = [
     photo.author ? '照片：' + escapePhotoText(photo.author) : '',

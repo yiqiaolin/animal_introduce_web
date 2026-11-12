@@ -28,7 +28,7 @@ python3 -m http.server 8000
 
 圖鑑依固定編號排序，未解鎖僅顯示編號、？？？、未知物種與尚未發現，無照片或資料且不可展開。解鎖後顯示真實照片、名稱、學名、分類、發現研究區與狀態；一次只展開一張，照片在左，研究資料在右。展開內容留在獨立捲動列表，不撐高頁面。
 
-照片完全由使用者提供，預留路徑為 `assets/animals/photos/bear.png`、`monkey.jpeg`、`cat.jpg`、`magpie.jpg`、`salmon.jpg`。把照片放到對應路徑後重新整理即可，缺檔、損壞或尚未載入時顯示原風格占位區，不顯示破圖。圖鑑縮圖、展開照片與研究面板均使用 `object-fit: cover` 適應固定照片區塊，不更動地圖 2D 插畫。
+照片完全由使用者提供，預留路徑為 `assets/animals/photos/bear.png`、`monkey.jpeg`、`cat.jpg`、`magpie.png`、`salmon.jpg`。把照片放到對應路徑後重新整理即可，缺檔、損壞或尚未載入時顯示原風格占位區，不顯示破圖。圖鑑縮圖、展開照片與研究面板均使用 `object-fit: cover` 適應固定照片區塊，不更動地圖 2D 插畫。
 
 照片路徑與預留作者／來源／授權欄位集中於 `scripts/data/photos.js`，透過 `animals.js` 的 `photo` 共用。實際署名與授權由使用者提供；未提供時不顯示或推測。先前下載照片與授權紀錄保留於 `assets/animals/photos/previous-downloads/`，不由介面引用。詳細提供方式見 [照片資料夾說明](assets/animals/photos/README.md)。
 

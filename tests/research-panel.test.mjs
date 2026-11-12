@@ -123,7 +123,7 @@ test('official panel fields survive data mapping and render without demo/pending
   };
   for (const animal of animals) {
     assert.equal(animal.conservation, expected[animal.id]);
-    assert.equal(animal.ecologyReviewedOn, '2026-11-11');
+    assert.equal(animal.ecologyReviewedOn, '2026-11-12');
     assert.ok(animal.ecologySource.startsWith('https://'));
     assert.equal(animal.conservationSources.length, 2);
     assert.ok(animal.habitat.length <= 24);

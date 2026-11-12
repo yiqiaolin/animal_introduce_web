@@ -7,7 +7,7 @@
 | bear.png | bear | 臺灣黑熊 |
 | monkey.jpeg | monkey | 臺灣獼猴 |
 | cat.jpg | cat | 石虎 |
-| magpie.jpg | magpie | 臺灣藍鵲 |
+| magpie.png | magpie | 臺灣藍鵲 |
 | salmon.jpg | salmon | 櫻花鉤吻鮭 |
 
 缺圖、載入中、檔案損壞時會顯示占位區，成功載入後自動顯示照片。照片以 `object-fit: cover` 適配卡片，原始檔案不修改。若使用其他檔名或副檔名，請更新 `scripts/data/photos.js` 的對應 `src`。
